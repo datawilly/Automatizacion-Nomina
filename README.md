@@ -1,4 +1,4 @@
-# n8n-operational-workflows
+# Automatizacion-Nomina
 
 **Sistema de nómina automatizado para pymes Ecuador** — workflows en n8n que reemplazan 4+ horas de trabajo manual en Excel por una ejecución de 30 segundos.
 
