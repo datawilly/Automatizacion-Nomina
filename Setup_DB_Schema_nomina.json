@@ -1,0 +1,95 @@
+{
+  "name": "Setup DB - Schema nómina",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "58cf2153-9e08-4f9d-bf7c-6bd05eb59cc7",
+      "name": "Ejecutar manualmente"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ============================================\n-- Schema: Sistema de nómina Ecuador\n-- Ejecutar una sola vez para crear las tablas\n-- ============================================\n\nCREATE TABLE IF NOT EXISTS empleados (\n  id                     SERIAL PRIMARY KEY,\n  identificacion         VARCHAR(13) NOT NULL,\n  nombre                 VARCHAR(200) NOT NULL,\n  fecha_nacimiento       DATE,\n  direccion              TEXT,\n  telefono               VARCHAR(20),\n  email                  VARCHAR(100),\n  fecha_contratacion     DATE,\n  salario_base           NUMERIC(10,2) DEFAULT 0,\n  decimos_mensual        BOOLEAN DEFAULT true,\n  estado                 VARCHAR(20) DEFAULT 'activo',\n  fecha_salida           DATE,\n  id_banco               INTEGER,\n  cuenta_bancaria        VARCHAR(30),\n  id_cargo               INTEGER,\n  contacto_emergencia    TEXT,\n  codigo_empresa         VARCHAR(10) DEFAULT 'DEMO',\n\n  -- Rubros adicionales\n  sueldo_variable        NUMERIC(10,2) DEFAULT 0,\n  transporte             NUMERIC(10,2) DEFAULT 0,\n  movilizacion           NUMERIC(10,2) DEFAULT 0,\n  valor_alimentacion_4_5 BOOLEAN DEFAULT true,\n  compensacion           NUMERIC(10,2) DEFAULT 0,\n  utilidades             NUMERIC(10,2) DEFAULT 0,\n  otros_ingresos         NUMERIC(10,2) DEFAULT 0,\n\n  -- Descuentos fijos\n  anticipos              NUMERIC(10,2) DEFAULT 0,\n  prestamos_empresa      NUMERIC(10,2) DEFAULT 0,\n  iess_quirograficos     NUMERIC(10,2) DEFAULT 0,\n  crediflash             NUMERIC(10,2) DEFAULT 0,\n  saludsa                NUMERIC(10,2) DEFAULT 0,\n\n  created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Índice único por cédula para upsert\nCREATE UNIQUE INDEX IF NOT EXISTS uk_empleados_ident\n  ON empleados(identificacion);\n\n-- Índice por empresa para filtros rápidos\nCREATE INDEX IF NOT EXISTS idx_empleados_empresa\n  ON empleados(codigo_empresa);\n\n-- Índice por estado para consultas de nómina activa\nCREATE INDEX IF NOT EXISTS idx_empleados_estado\n  ON empleados(estado);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        0
+      ],
+      "id": "44b6d814-1bf4-4761-84a8-8e82f4fb2058",
+      "name": "Crear schema empleados",
+      "credentials": {
+        "postgres": {
+          "id": "OGopVnSrpRrSCr56",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "ALTER TABLE empleados \n  ALTER COLUMN telefono TYPE VARCHAR(50),\n  ALTER COLUMN cuenta_bancaria TYPE VARCHAR(50),\n  ALTER COLUMN contacto_emergencia TYPE VARCHAR(100);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        0
+      ],
+      "id": "3c75f8a6-486b-4aab-9447-4e5df98ec5b2",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "OGopVnSrpRrSCr56",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Crear schema empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear schema empleados": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6e343f52-7413-4236-8d5a-12cd6e5752bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "INSTANCE_ID"
+  },
+  "id": "tw1ET1FYbEWxYn5eXL8lp",
+  "tags": []
+}

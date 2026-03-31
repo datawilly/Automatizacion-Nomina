@@ -1,0 +1,291 @@
+{
+  "name": "Carga de empleados (Google Drive)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0da02a97-c787-4f26-a490-b4a0d277bf6f",
+      "name": "Ejecutar manualmente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-001",
+              "name": "empresa",
+              "value": "DEMO",
+              "type": "string"
+            },
+            {
+              "id": "cfg-002",
+              "name": "folder_empleados",
+              "value": "FOLDER_ID_EMPLEADOS",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "121a1a6b-6f5f-4fe7-8792-5c52968a1928",
+      "name": "Configuracion"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "FOLDER_ID_EMPLEADOS",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        400,
+        0
+      ],
+      "id": "6c68c1cb-4fe8-46a2-8ea0-0b0533e4244c",
+      "name": "Listar carpeta Empleados",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Buscar el archivo de empleados que corresponda a la empresa\n// Ej: \"empleados_QR.xlsx\", \"empleados_qr.xlsx\", \"QR_empleados.xlsx\", \"QR.xlsx\"\n\nconst empresa = $('Configuracion').first().json.empresa || 'QR';\nconst empresaLower = empresa.toLowerCase();\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase();\n\nlet match = null;\n\nfor (const item of items) {\n  const name = normalize(item.json.name || '');\n  \n  // Solo archivos xlsx/xls\n  if (!name.endsWith('.xlsx') && !name.endsWith('.xls')) continue;\n  \n  // Buscar empresa en el nombre del archivo\n  if (name.includes(empresaLower)) {\n    match = item;\n    break;\n  }\n}\n\nif (!match) {\n  const available = items.map(i => i.json.name).join(', ');\n  throw new Error(\n    `No se encontró archivo de empleados para empresa \"${empresa}\" en la carpeta.\\n` +\n    `Archivos disponibles: ${available}\\n` +\n    `El archivo debe contener \"${empresa}\" en su nombre (ej: empleados_${empresa}.xlsx)`\n  );\n}\n\nconsole.log(`Archivo encontrado: ${match.json.name} (empresa: ${empresa})`);\nreturn [match];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e83f37e7-f90e-453e-ad82-61cd2b74d952",
+      "name": "Filtrar archivo de empresa"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        848,
+        0
+      ],
+      "id": "e1ac5e40-6ce7-4bbe-a3bc-ee1ac4d91801",
+      "name": "Descargar archivo",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Asegura la unicidad por identificación (ejecuta una vez en tu DB):\n-- CREATE UNIQUE INDEX IF NOT EXISTS uk_empleados_ident ON empleados(identificacion);\n\nINSERT INTO empleados (\n  identificacion, nombre, fecha_nacimiento, direccion, telefono, email,\n  fecha_contratacion, salario_base, decimos_mensual, estado, fecha_salida,\n  id_banco, cuenta_bancaria, id_cargo, contacto_emergencia, codigo_empresa,\n  sueldo_variable, transporte, movilizacion, valor_alimentacion_4_5,\n  compensacion, utilidades, otros_ingresos, anticipos, prestamos_empresa,\n  iess_quirograficos, crediflash, saludsa\n) VALUES (\n  '{{$json.identificacion || \"\"}}',\n  '{{$json.nombre || \"SIN NOMBRE\"}}',\n  NULLIF('{{$json.fecha_nacimiento || \"\"}}','')::date,\n  '{{$json.direccion || \"\"}}',\n  '{{$json.telefono || \"\"}}',\n  '{{$json.email || \"\"}}',\n  NULLIF('{{$json.fecha_contratacion || \"\"}}','')::date,\n  {{ $json.salario_base ?? 0 }}::numeric,\n  {{ ($json.decimos_mensual ?? true) ? 'true' : 'false' }}::boolean,\n  '{{$json.estado || \"activo\"}}',\n  NULLIF('{{$json.fecha_salida || \"\"}}','')::date,\n\n  {{ ($json.id_banco ?? '') === '' ? 'NULL' : $json.id_banco }},\n  '{{$json.cuenta_bancaria || \"\"}}',\n  {{ ($json.id_cargo ?? '') === '' ? 'NULL' : $json.id_cargo }},\n  '{{$json.contacto_emergencia || \"\"}}',\n  '{{$json.codigo_empresa || \"QR\"}}',\n\n  {{ $json.sueldo_variable ?? 0 }}::numeric,\n  {{ $json.transporte ?? 0 }}::numeric,\n  {{ $json.movilizacion ?? 0 }}::numeric,\n  {{ ($json.valor_alimentacion_4_5 ?? true) ? 'true' : 'false' }}::boolean,\n  {{ $json.compensacion ?? 0 }}::numeric,\n  {{ $json.utilidades ?? 0 }}::numeric,\n  {{ $json.otros_ingresos ?? 0 }}::numeric,\n  {{ $json.anticipos ?? 0 }}::numeric,\n  {{ $json.prestamos_empresa ?? 0 }}::numeric,\n  {{ $json.iess_quirograficos ?? 0 }}::numeric,\n  {{ $json.crediflash ?? 0 }}::numeric,\n  {{ $json.saludsa ?? 0 }}::numeric\n)\nON CONFLICT (identificacion) DO UPDATE SET\n  nombre               = EXCLUDED.nombre,\n  fecha_nacimiento     = EXCLUDED.fecha_nacimiento,\n  direccion            = EXCLUDED.direccion,\n  telefono             = EXCLUDED.telefono,\n  email                = EXCLUDED.email,\n  fecha_contratacion   = EXCLUDED.fecha_contratacion,\n  salario_base         = CASE WHEN EXCLUDED.salario_base > 0\n                              THEN EXCLUDED.salario_base\n                              ELSE empleados.salario_base END,\n  decimos_mensual      = EXCLUDED.decimos_mensual,\n  estado               = EXCLUDED.estado,\n  fecha_salida         = EXCLUDED.fecha_salida,\n  id_banco             = EXCLUDED.id_banco,\n  cuenta_bancaria      = EXCLUDED.cuenta_bancaria,\n  id_cargo             = EXCLUDED.id_cargo,\n  contacto_emergencia  = EXCLUDED.contacto_emergencia,\n  codigo_empresa       = EXCLUDED.codigo_empresa,\n  sueldo_variable      = EXCLUDED.sueldo_variable,\n  transporte           = EXCLUDED.transporte,\n  movilizacion         = EXCLUDED.movilizacion,\n  valor_alimentacion_4_5 = EXCLUDED.valor_alimentacion_4_5,\n  compensacion         = EXCLUDED.compensacion,\n  utilidades           = EXCLUDED.utilidades,\n  otros_ingresos       = EXCLUDED.otros_ingresos,\n  anticipos            = EXCLUDED.anticipos,\n  prestamos_empresa    = EXCLUDED.prestamos_empresa,\n  iess_quirograficos   = EXCLUDED.iess_quirograficos,\n  crediflash           = EXCLUDED.crediflash,\n  saludsa              = EXCLUDED.saludsa\nRETURNING (xmax = 0) AS inserted;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "bd6b6c93-c010-4f71-b464-ad404683479c",
+      "name": "Upsert de empleados",
+      "credentials": {
+        "postgres": {
+          "id": "OGopVnSrpRrSCr56",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM empleados\nORDER BY nombre\nLIMIT 20;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1712,
+        0
+      ],
+      "id": "2b772ce6-3f8e-4c12-888b-b5cc79e716f4",
+      "name": "Consulta de empleados",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "OGopVnSrpRrSCr56",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file",
+        "options": {
+          "headerRow": true,
+          "range": "A1:AZ3000"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        0
+      ],
+      "id": "f0f48db1-f554-4ff9-9cf1-f83f8b02de1d",
+      "name": "Leer archivo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================\n// Helpers\n// =====================\nconst clean = s => {\n  const t = (s ?? '').toString().trim();\n  const lo = t.toLowerCase();\n  return ['empty','-','null','n/a'].includes(lo) ? '' : t;\n};\nconst norm = s =>\n  clean(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();\nconst toDigits = s => clean(s).replace(/\\D/g,'');\n\n// Número robusto (último . o , como decimal)\nconst toNum = v => {\n  let s = clean(v);\n  if (!s) return 0;\n  s = s.replace(/[^\\d.,-]/g, '');\n  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');\n  if (lc > ld || ld > lc) {\n    const i = Math.max(lc, ld);\n    const intPart  = s.slice(0, i).replace(/[^\\d-]/g, '');\n    const fracPart = s.slice(i + 1).replace(/[^\\d]/g, '');\n    s = intPart + (fracPart ? '.' + fracPart : '');\n  } else {\n    s = s.replace(/[^\\d-]/g, '');\n  }\n  const n = Number(s);\n  return Number.isFinite(n) ? n : 0;\n};\n\nconst toBool = v => {\n  if (v === null || v === undefined) return false;\n  if (typeof v === 'boolean') return v;\n  const s = norm(v);\n  if (['1','si','sí','s','y','yes','true','verdadero','x','on','t'].includes(s)) return true;\n  if (['0','no','n','false','f','off'].includes(s)) return false;\n  const n = Number(v);\n  return !isNaN(n) ? n > 0 : !!s;\n};\n\n// Excel serial -> ISO (YYYY-MM-DD)\nconst excelSerialToISO = d => {\n  const n = Number(d);\n  if (!isFinite(n) || n <= 0) return '';\n  const base = Date.UTC(1899, 11, 30); // epoch Excel\n  const dt = new Date(base + Math.floor(n) * 86400000);\n  return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0,10);\n};\n\n// Fecha robusta: serial Excel, dd/mm/aaaa, dd-mm-aaaa, dd.mm.aaaa, ISO\nconst toISO = v => {\n  if (v === null || v === undefined || v === '') return '';\n  const asNum = Number(v);\n  if (!isNaN(asNum) && clean(v).match(/^\\d+(\\.0+)?$/)) return excelSerialToISO(asNum);\n  let s = clean(v).replace(/[.]/g,'/').replace(/-/g,'/');\n  const m = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/);\n  if (m) {\n    let [_, d, mo, y] = m;\n    if (y.length === 2) y = String(2000 + Number(y));\n    return `${y.padStart(4,'0')}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;\n  }\n  const dt = new Date(s);\n  return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0,10);\n};\n\nconst mapEstado = v => {\n  const s = norm(v);\n  if (s === '' || s === 'activo' || ['act','a'].includes(s)) return 'activo';\n  if (['inactivo','baja','retirado','desvinculado','pasivo','ina','p'].includes(s)) return 'inactivo';\n  return 'activo';\n};\n\n// =====================\n// Sinónimos de columnas\n// =====================\nconst syn = {\n  identificacion: ['identificacion','cédula','cedula','ci','dni','id','nro cedula','numero cedula','número cédula'],\n  nombre: ['nombre','apellidos y nombres','empleado','colaborador'],\n  fecha_nacimiento: ['fecha_nacimiento','fecha nacimiento','f_nacimiento','nacimiento'],\n  direccion: ['direccion','dirección'],\n  telefono: ['telefono','teléfono'],\n  email: ['email','correo','correo_electronico','correo electrónico'],\n  fecha_contratacion: ['fecha_contratacion','fecha ingreso','fecha contrato','fecha_contrato','ingreso'],\n  salario_base: ['salario_base','sueldo','sueldo_base','salario base','sueldo base'],\n  decimos_mensual: ['decimos_mensual','decimos mensual','mensualizacion decimos','paga decimos mensual','acumula decimos'],\n  estado: ['estado','estatus','status'],\n  fecha_salida: ['fecha_salida','fecha salida','baja'],\n  id_banco: ['id_banco','banco_id','banco'],\n  cuenta_bancaria: ['cuenta_bancaria','cuenta','numero cuenta','numero_cuenta','nro cuenta','número de cuenta','número_cuenta','num cuenta'],\n  id_cargo: ['id_cargo','cargo_id','cargo'],\n  contacto_emergencia: ['contacto_emergencia','contacto emergencia','contacto de emergencia','emergencia'],\n  codigo_empresa: ['codigo_empresa','empresa','cod empresa','codigo emp','codigo','código'],\n  sueldo_variable: ['sueldo_variable'],\n  transporte: ['transporte'],\n  movilizacion: ['movilizacion','movilización'],\n  valor_alimentacion_4_5: ['valor_alimentacion_4_5','alimentacion_4_5','alimentación_4_5','usa 4.5 alimentacion'],\n  compensacion: ['compensacion','compensación'],\n  utilidades: ['utilidades'],\n  otros_ingresos: ['otros_ingresos','otros ingresos','ingresos otros'],\n  anticipos: ['anticipos','anticipo'],\n  prestamos_empresa: ['prestamos_empresa','prestamos','préstamos empresa','prestamos empresa'],\n  iess_quirograficos: ['iess_quirograficos','iess_quirografarios','iess quirografario','quirografario iess'],\n  crediflash: ['crediflash','credi flash','credi_flash'],\n  saludsa: ['saludsa','seguro_salud','seguro salud'],\n};\n\nconst pickKey = (obj, names) => {\n  const keys = Object.keys(obj);\n  for (const nm of names) {\n    const k = keys.find(k => norm(k) === norm(nm));\n    if (k) return k;\n  }\n  return null;\n};\n\n// =====================\n// Normalización → 1 item por empleado\n// =====================\nconst rows = items.map(i => i.json || {});\nconst meta = ($('Configuracion').first().json) || {};\nconst out = [];\n\nfor (const row0 of rows) {\n  const row = { ...row0 };\n\n  // claves mínimas\n  const kId  = pickKey(row, syn.identificacion);\n  const kNom = pickKey(row, syn.nombre);\n  const id   = kId  ? toDigits(row[kId]) : '';\n  const nom  = kNom ? clean(row[kNom])   : '';\n  if (!id || !nom) continue;\n\n  // empresa visible y espejo en codigo_empresa\n  const empresaVal = clean(row[pickKey(row, syn.codigo_empresa)] || meta.empresa || 'QR');\n\n  const emp = {\n    empresa: empresaVal,\n    codigo_empresa: empresaVal,\n\n    identificacion: id,\n    nombre: nom,\n\n    direccion: clean(row[pickKey(row, syn.direccion)] || ''),\n    telefono: clean(row[pickKey(row, syn.telefono)] || ''),\n    email: clean(row[pickKey(row, syn.email)] || ''),\n    cuenta_bancaria: clean(row[pickKey(row, syn.cuenta_bancaria)] || ''),\n    contacto_emergencia: clean(row[pickKey(row, syn.contacto_emergencia)] || ''),\n\n    estado: mapEstado(row[pickKey(row, syn.estado)] ?? 'activo'),\n\n    fecha_nacimiento:   toISO(row[pickKey(row, syn.fecha_nacimiento)]   ?? ''),\n    fecha_contratacion: toISO(row[pickKey(row, syn.fecha_contratacion)] ?? ''),\n    fecha_salida:       toISO(row[pickKey(row, syn.fecha_salida)]       ?? ''),\n\n    salario_base:        toNum(row[pickKey(row, syn.salario_base)]        ?? 0),\n    sueldo_variable:     toNum(row[pickKey(row, syn.sueldo_variable)]     ?? 0),\n    transporte:          toNum(row[pickKey(row, syn.transporte)]          ?? 0),\n    movilizacion:        toNum(row[pickKey(row, syn.movilizacion)]        ?? 0),\n    compensacion:        toNum(row[pickKey(row, syn.compensacion)]        ?? 0),\n    utilidades:          toNum(row[pickKey(row, syn.utilidades)]          ?? 0),\n    otros_ingresos:      toNum(row[pickKey(row, syn.otros_ingresos)]      ?? 0),\n    anticipos:           toNum(row[pickKey(row, syn.anticipos)]           ?? 0),\n    prestamos_empresa:   toNum(row[pickKey(row, syn.prestamos_empresa)]   ?? 0),\n    iess_quirograficos:  toNum(row[pickKey(row, syn.iess_quirograficos)]  ?? 0),\n    crediflash:          toNum(row[pickKey(row, syn.crediflash)]          ?? 0),\n    saludsa:             toNum(row[pickKey(row, syn.saludsa)]             ?? 0),\n\n    decimos_mensual:         toBool(row[pickKey(row, syn.decimos_mensual)]        ?? 1),\n    valor_alimentacion_4_5:  toBool(row[pickKey(row, syn.valor_alimentacion_4_5)] ?? 1),\n\n    id_banco: null,\n    id_cargo: null,\n  };\n\n  // ids opcionales numéricos\n  const kb = pickKey(row, syn.id_banco);\n  const kc = pickKey(row, syn.id_cargo);\n  if (kb && clean(row[kb]) !== '') emp.id_banco = Number(row[kb]);\n  if (kc && clean(row[kc]) !== '') emp.id_cargo = Number(row[kc]);\n\n  out.push({ json: emp });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "6e791b2c-9d80-438b-8a93-6feabffecb9c",
+      "name": "Limpiar archivo"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracion": {
+      "main": [
+        [
+          {
+            "node": "Listar carpeta Empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar carpeta Empleados": {
+      "main": [
+        [
+          {
+            "node": "Filtrar archivo de empresa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar archivo de empresa": {
+      "main": [
+        [
+          {
+            "node": "Descargar archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar archivo": {
+      "main": [
+        [
+          {
+            "node": "Leer archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer archivo": {
+      "main": [
+        [
+          {
+            "node": "Limpiar archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar archivo": {
+      "main": [
+        [
+          {
+            "node": "Upsert de empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert de empleados": {
+      "main": [
+        [
+          {
+            "node": "Consulta de empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "7e30a698-cc54-4bfd-9561-d12cc4b87dca",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "INSTANCE_ID"
+  },
+  "id": "xDkNXHHygHvnb_XG73l4V",
+  "tags": []
+}

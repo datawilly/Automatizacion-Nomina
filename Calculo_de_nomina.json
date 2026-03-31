@@ -1,0 +1,2126 @@
+{
+  "name": "Calculo de nomina (Google Drive)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        320
+      ],
+      "id": "95e4a85b-36fd-4786-bd77-4546a736e0fd",
+      "name": "Ejecutar manualmente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-001",
+              "name": "fecha_nomina",
+              "value": "2025-06",
+              "type": "string"
+            },
+            {
+              "id": "cfg-002",
+              "name": "empresa",
+              "value": "DEMO",
+              "type": "string"
+            },
+            {
+              "id": "cfg-003",
+              "name": "folder_novedades",
+              "value": "FOLDER_ID_NOVEDADES",
+              "type": "string"
+            },
+            {
+              "id": "cfg-004",
+              "name": "folder_descuentos",
+              "value": "FOLDER_ID_DESCUENTOS",
+              "type": "string"
+            },
+            {
+              "id": "cfg-005",
+              "name": "folder_pdfs",
+              "value": "FOLDER_ID_PDFS",
+              "type": "string"
+            },
+            {
+              "id": "cfg-006",
+              "name": "folder_ajustes",
+              "value": "FOLDER_ID_AJUSTES",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1184,
+        320
+      ],
+      "id": "be565c3d-e331-4cda-bd28-e9711d3dadae",
+      "name": "Configuracion del periodo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// Resolver palabras clave del mes a partir de fecha_nomina\n// Genera variantes para buscar archivos por nombre\n// =====================================================\n\nconst fecha = $json.fecha_nomina || '';\n\nconst MONTHS = {\n  1: { name: 'enero',      abbr: 'ene', num: '01' },\n  2: { name: 'febrero',    abbr: 'feb', num: '02' },\n  3: { name: 'marzo',      abbr: 'mar', num: '03' },\n  4: { name: 'abril',      abbr: 'abr', num: '04' },\n  5: { name: 'mayo',       abbr: 'may', num: '05' },\n  6: { name: 'junio',      abbr: 'jun', num: '06' },\n  7: { name: 'julio',      abbr: 'jul', num: '07' },\n  8: { name: 'agosto',     abbr: 'ago', num: '08' },\n  9: { name: 'septiembre', abbr: 'sep', num: '09' },\n  10: { name: 'octubre',   abbr: 'oct', num: '10' },\n  11: { name: 'noviembre', abbr: 'nov', num: '11' },\n  12: { name: 'diciembre',  abbr: 'dic', num: '12' },\n};\n\n// Parsear año y mes\nlet y, mo;\nconst m1 = fecha.match(/^(\\d{4})-(\\d{1,2})/);\nif (m1) { y = +m1[1]; mo = +m1[2]; }\nelse {\n  const m2 = fecha.match(/^(\\d{4})(\\d{2})$/);\n  if (m2) { y = +m2[1]; mo = +m2[2]; }\n  else throw new Error(`No se pudo parsear fecha_nomina: '${fecha}'. Usa formato YYYY-MM.`);\n}\n\nconst info = MONTHS[mo];\nif (!info) throw new Error(`Mes inválido: ${mo}`);\n\n// Variantes de búsqueda: junio, jun, 06, 2025-06, 202506\nconst keywords = [\n  info.name,                    // junio\n  info.abbr,                    // jun\n  info.num,                     // 06\n  `${y}-${info.num}`,           // 2025-06\n  `${y}${info.num}`,            // 202506\n  `${info.name}_${y}`,          // junio_2025\n  `${info.name} ${y}`,          // junio 2025\n  `${info.abbr}_${y}`,          // jun_2025\n  `${info.abbr}${y}`,           // jun2025\n];\n\nreturn [{\n  json: {\n    ...$json,\n    y,\n    mo,\n    month_name: info.name,\n    month_abbr: info.abbr,\n    month_num: info.num,\n    keywords,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        320
+      ],
+      "id": "886e101d-7c9d-4fc1-9235-6a205187c40d",
+      "name": "Resolver mes y keywords"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "FOLDER_ID_NOVEDADES",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        64
+      ],
+      "id": "d831feab-fa02-45c6-90db-fc4f6330b57c",
+      "name": "Listar Novedades",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "FOLDER_ID_DESCUENTOS",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        320
+      ],
+      "id": "44629b08-d248-44c1-adb1-2483e2a9b11f",
+      "name": "Listar Descuentos",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "FOLDER_ID_PDFS",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        736
+      ],
+      "id": "5941e9c1-d6c3-4ab0-aec3-373cde7d6acb",
+      "name": "Listar PDFs",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "FOLDER_ID_AJUSTES",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        464
+      ],
+      "id": "1b6f560e-4526-492a-946c-4587f4313d1f",
+      "name": "Listar Ajustes",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// Filtrar archivos del mes actual por keywords\n// Recibe: items de Google Drive (listado de archivos)\n// Usa: keywords del nodo 'Resolver mes y keywords'\n// =====================================================\n\nconst config = $('Resolver mes y keywords').first().json;\nconst keywords = config.keywords || [];\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '');\n\nconst normalizedKW = keywords.map(normalize);\n\nconst matches = [];\nfor (const item of items) {\n  const name = normalize(item.json.name || '');\n  const found = normalizedKW.some(kw => name.includes(kw));\n  if (found) matches.push(item);\n}\n\nif (matches.length === 0) {\n  console.warn(`No se encontraron archivos que coincidan con: ${keywords.join(', ')}`);\n  console.warn(`Archivos disponibles: ${items.map(i => i.json.name).join(', ')}`);\n}\n\nreturn matches.length > 0 ? matches : [{ json: { _empty: true, _source: 'filtro', keywords } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        64
+      ],
+      "id": "07c3551b-44a3-4ad5-812e-ad0e502ffed9",
+      "name": "Filtrar novedades del mes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar descuentos del mes\nconst config = $('Resolver mes y keywords').first().json;\nconst keywords = config.keywords || [];\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '');\n\nconst normalizedKW = keywords.map(normalize);\n\nconst matches = [];\nfor (const item of items) {\n  const name = normalize(item.json.name || '');\n  const found = normalizedKW.some(kw => name.includes(kw));\n  if (found) matches.push(item);\n}\n\nreturn matches.length > 0 ? matches : [{ json: { _empty: true, _source: 'descuentos' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        320
+      ],
+      "id": "561bb2ea-0280-40ca-b400-dd5daca52782",
+      "name": "Filtrar descuentos del mes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar PDFs del mes (quirografarios + fondos de reserva)\nconst config = $('Resolver mes y keywords').first().json;\nconst keywords = config.keywords || [];\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '');\n\nconst normalizedKW = keywords.map(normalize);\n\nconst matches = [];\nfor (const item of items) {\n  const name = normalize(item.json.name || '');\n  const found = normalizedKW.some(kw => name.includes(kw));\n  if (found) matches.push(item);\n}\n\nreturn matches.length > 0 ? matches : [{ json: { _empty: true, _source: 'pdfs' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        736
+      ],
+      "id": "105057e4-0f84-4a66-82f4-04aa992f774c",
+      "name": "Filtrar PDFs del mes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar ajustes del mes\nconst config = $('Resolver mes y keywords').first().json;\nconst keywords = config.keywords || [];\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '');\n\nconst normalizedKW = keywords.map(normalize);\n\nconst matches = [];\nfor (const item of items) {\n  const name = normalize(item.json.name || '');\n  const found = normalizedKW.some(kw => name.includes(kw));\n  if (found) matches.push(item);\n}\n\n// Ajustes es siempre opcional\nreturn matches.length > 0 ? matches : [{ json: { _empty: true, _source: 'ajustes' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        464
+      ],
+      "id": "6c523602-056b-4037-a595-09e7b7af93d9",
+      "name": "Filtrar ajustes del mes"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file0"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -384,
+        64
+      ],
+      "id": "90836d93-72a9-462f-94c9-9ad0f214324f",
+      "name": "Descargar novedades",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file1"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -384,
+        320
+      ],
+      "id": "abf3c099-f1de-43eb-97a2-43a9134b0bd6",
+      "name": "Descargar descuentos",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clasificar PDFs: quirografarios (file2) vs fondos de reserva (file3) vs hipotecarios (file5)\n\nconst normalize = s => (s || '').toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase();\n\nconst results = { quirografarios: null, fondos: null, hipotecarios: null };\n\nfor (const item of items) {\n  if (item.json._empty) continue;\n  const name = normalize(item.json.name);\n\n  if (name.includes('hipotec')) {\n    results.hipotecarios = item.json.id;\n  } else if (name.includes('quirog') || name.includes('quiro') || name.includes('prestamo')) {\n    results.quirografarios = item.json.id;\n  } else if (name.includes('fondo') || name.includes('reserva') || name.includes('fr')) {\n    results.fondos = item.json.id;\n  } else {\n    if (!results.quirografarios) results.quirografarios = item.json.id;\n    else if (!results.fondos) results.fondos = item.json.id;\n  }\n}\n\nreturn [{ json: results }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        736
+      ],
+      "id": "6d6d740e-4b9e-4f20-8ec1-bcce96b2b642",
+      "name": "Clasificar PDFs"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.quirografarios }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file2"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -128,
+        624
+      ],
+      "id": "dc3ce1dd-0bd6-44a1-9d4c-ddd17164483a",
+      "name": "Descargar quirografarios",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.fondos }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file3"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -128,
+        992
+      ],
+      "id": "4dbc203c-674a-4350-9c22-cc05a96f40df",
+      "name": "Descargar fondos de reserva",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file4"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -368,
+        464
+      ],
+      "id": "1cc227b0-4170-4f43-93f0-b1e7526bcd80",
+      "name": "Descargar ajustes",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Armar lote (Run Once for All Items)\n\n// Helpers\nfunction toNum(v) {\n  if (v === null || v === undefined || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n\n  let s = String(v).trim().replace(/[^\\d.,-]/g, '');\n  if (!s) return 0;\n\n  const comma = s.lastIndexOf(',');\n  const dot = s.lastIndexOf('.');\n\n  if (comma > dot) {\n    // \"1.234,56\" -> \"1234.56\"\n    s = s.slice(0, comma).replace(/[^\\d-]/g, '') + '.' + s.slice(comma + 1).replace(/\\D/g, '');\n  } else if (dot > comma) {\n    // \"1,234.56\" -> \"1234.56\"\n    s = s.slice(0, dot).replace(/[^\\d-]/g, '') + '.' + s.slice(dot + 1).replace(/\\D/g, '');\n  }\n\n  const n = Number(s);\n  return Number.isFinite(n) ? n : 0;\n}\n\nfunction normCedula(x) {\n  if (x === null || x === undefined) return '';\n  let s = String(x).trim().replace(/\\D/g, '');\n  // Si viene como número, puede perder ceros; rellenamos solo si son dígitos y < 10\n  if (/^\\d+$/.test(s) && s.length > 0 && s.length < 10) s = s.padStart(10, '0');\n  return s;\n}\n\nfunction frModo(fr_derecho, fr_acumulacion) {\n  if (!fr_derecho) return 'sin_derecho';\n  return fr_acumulacion ? 'acumula' : 'paga';\n}\n\nfunction emptyToNull(x) {\n  if (x === '' || x === undefined) return null;\n  return x;\n}\n\nfunction pickIdx(obj, fallback) {\n  // intenta varias llaves comunes; si no hay, usa fallback\n  const candidates = [\n    obj?.idx,\n    obj?._idx,\n    obj?.__idx,\n    obj?.rowIndex,\n    obj?.row_index,\n    obj?.source_idx,\n  ];\n\n  for (const c of candidates) {\n    if (c === 0) return 0;\n    if (c !== null && c !== undefined && c !== '') {\n      const n = Number(c);\n      if (Number.isFinite(n)) return n;\n    }\n  }\n  return fallback;\n}\n\nfunction truthy(v) {\n  // true / \"true\" / 1 / \"1\" / \"yes\" / \"si\" / \"x\"\n  if (v === true) return true;\n  if (v === false || v === null || v === undefined) return false;\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'si', 'sí', 'x'].includes(s);\n}\n\nconst monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst monthAbbr  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];\n\n// ----------------------------------------------------\n// IMPORTANTE: NO hacer swap de fr_derecho / fr_tiene_cargos\n// ----------------------------------------------------\nconst SWAP_DER_CARGOS = false;\n\n// 1) Input base: viene 1 item con { empresa, empleados:[...] }\nconst inJson = items[0]?.json ?? {};\nconst empresa = inJson.empresa ?? null;\nconst empleadosIn = Array.isArray(inJson.empleados) ? inJson.empleados : [];\n\n// 2) Traer periodo (si existe el nodo); fallback al propio item si ya lo trae\nconst periodoFromNode = ($items('Periodo nomina')?.[0]?.json) ?? {};\nconst fecha_nomina   = periodoFromNode.fecha_nomina   ?? inJson.fecha_nomina   ?? null;\nconst periodo_key    = periodoFromNode.periodo_key    ?? inJson.periodo_key    ?? null;\nconst periodo_inicio = periodoFromNode.periodo_inicio ?? inJson.periodo_inicio ?? null;\nconst periodo_fin    = periodoFromNode.periodo_fin    ?? inJson.periodo_fin    ?? null;\nconst y              = periodoFromNode.y              ?? inJson.y              ?? null;\nconst mo             = periodoFromNode.mo             ?? inJson.mo             ?? null;\n\nconst month_name = (mo >= 1 && mo <= 12) ? monthNames[mo - 1] : null;\nconst month_name_abbr = (mo >= 1 && mo <= 12) ? monthAbbr[mo - 1] : null;\n\n// 3) Normalizar empleados SIN perder campos\nconst empleadosOut = [];\n\nfor (let i = 0; i < empleadosIn.length; i++) {\n  const empRaw = empleadosIn[i];\n\n  // Partir del objeto completo para NO perder campos\n  const e = { ...(empRaw ?? {}) };\n\n  // ✅ Materializar idx (lo que antes era $itemIndex/meta)\n  e.idx = pickIdx(e, i);\n  e.idx_1b = e.idx + 1;\n\n  // ✅ Identificación: tomar de varias llaves ANTES de normalizar, y no pisar con vacío\n  const idSrc =\n    e.identificacion ??\n    e.cedula ??\n    e['Cédula'] ??\n    e['CEDULA'] ??\n    e.id ??\n    e.identificación ??\n    null;\n\n  const idNorm = normCedula(idSrc);\n  if (idNorm) e.identificacion = idNorm;\n  e._id_source = idSrc;\n\n  // Asegurar empresa (si vino null)\n  if (e.empresa === undefined || e.empresa === null || e.empresa === '') {\n    e.empresa = empresa;\n  }\n\n  // Asegurar clave (si falta)\n  if (!e.clave || String(e.clave).trim() === '') {\n    e.clave = (e.empresa && e.identificacion) ? `${e.empresa}-${e.identificacion}` : (e.clave ?? null);\n  }\n\n  // --- FR: mapear y derivar fr_modo, SIN sobreescribir datos base\n  e.fr_sucursal = e.fr_sucursal ?? e.sucursal ?? null;\n  e.fr_aportes_periodo = e.fr_aportes_periodo ?? e.aportes_periodo ?? null;\n  e.fr_fecha_solicitud = e.fr_fecha_solicitud ?? null;\n\n  if (SWAP_DER_CARGOS) {\n    const tmp = e.fr_derecho;\n    e.fr_derecho = e.fr_tiene_cargos;\n    e.fr_tiene_cargos = tmp;\n  }\n\n  const fr_derecho = truthy(e.fr_derecho);\n  const fr_acumulacion = truthy(e.fr_acumulacion);\n  e.fr_modo = frModo(fr_derecho, fr_acumulacion);\n\n  // --- Quiro: crear alias iess_quiro_* sin borrar monto_quiro/quiro_*\n  e.iess_quiro_monto  = toNum(e.iess_quiro_monto ?? e.monto_quiro ?? 0);\n  e.iess_quiro_nuts   = emptyToNull(e.iess_quiro_nuts ?? e.quiro_nuts ?? null);\n  e.iess_quiro_origen = emptyToNull(e.iess_quiro_origen ?? e.quiro_origen ?? null);\n\n  // --- Números clave: salario_base puede venir como db_salario_base\n  const salarioBaseSrc = (e.salario_base ?? e.db_salario_base ?? null);\n  if (salarioBaseSrc !== null && salarioBaseSrc !== undefined && salarioBaseSrc !== '') {\n    e.salario_base = toNum(salarioBaseSrc);\n  }\n\n  // ✅ Rubros típicos: normalizar numéricos SIN destruir el original\n  // (esto ayuda a evitar “no capturó” cuando aguas abajo esperan números)\n  e.sueldo_variable_num = toNum(e.sueldo_variable ?? e.db_sueldo_variable ?? 0);\n  e.otros_ingresos_num  = toNum(e.otros_ingresos ?? e.db_otros_ingresos ?? 0);\n  e.transporte_num      = toNum(e.transporte ?? e.db_transporte ?? 0);\n  e.movilizacion_num    = toNum(e.movilizacion ?? e.db_movilizacion ?? 0);\n  e.compensacion_num    = toNum(e.compensacion ?? e.db_compensacion ?? 0);\n  e.utilidades_num      = toNum(e.utilidades ?? e.db_utilidades ?? 0);\n  e.anticipos_num       = toNum(e.anticipos ?? e.db_anticipos ?? 0);\n  e.prestamos_empresa_num = toNum(e.prestamos_empresa ?? e.db_prestamos_empresa ?? 0);\n\n  // valor_alimentacion_4_5: mantener boolean\n  if (e.valor_alimentacion_4_5 !== undefined && e.valor_alimentacion_4_5 !== null) {\n    e.valor_alimentacion_4_5 = truthy(e.valor_alimentacion_4_5);\n  }\n\n  // --- Filtro anti-fantasmas (más tolerante)\n  const nombre = String(e.nombre ?? e.db_nombre ?? '').trim();\n  const hasNombre = nombre.length > 0;\n\n  // salario puede venir como salario_base o db_salario_base\n  const hasSalario = toNum(e.salario_base ?? e.db_salario_base ?? 0) > 0;\n\n  // en_db puede venir como true/\"true\"/1/\"1\"\n  const isEnDb = truthy(e.en_db);\n\n  if (!hasNombre && !hasSalario && !isEnDb) continue;\n\n  // Asegurar nombre (prioriza nombre, luego db_nombre)\n  if (!e.nombre || String(e.nombre).trim() === '') {\n    e.nombre = nombre; // ya viene de nombre o db_nombre\n  }\n\n  // --- Auditoría opcional para debug (puedes borrar luego)\n  // Te dice si se perdió algo (normalmente no) y cómo quedó la identificación\n  const beforeKeys = Object.keys(empRaw ?? {});\n  const afterKeys  = Object.keys(e);\n  e._audit = {\n    missing_keys: beforeKeys.filter(k => !(k in e)),\n    id_before: empRaw?.identificacion ?? empRaw?.cedula ?? empRaw?.['Cédula'] ?? null,\n    id_after: e.identificacion ?? null,\n    clave: e.clave ?? null,\n  };\n\n  empleadosOut.push(e);\n}\n\n// 4) Salida: 1 item (lote) listo para Excel\nconst lote = {\n  empresa,\n  fecha_nomina,\n  periodo_key,\n  periodo_inicio,\n  periodo_fin,\n  y,\n  mo,\n  month_name,\n  month_name_abbr,\n  empleados: empleadosOut,\n};\n\nreturn [{ json: lote }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3408,
+        1040
+      ],
+      "id": "c2a431b3-f84e-44b5-a1bd-b8f8adb990ee",
+      "name": "Armar lote"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrada: muchos items { identificacion, tipo, valor }\n// Salida: 1 item { descuentos: { <cedula>: { multa, crediflash, saludsa, seguro_accidentes, anticipos, prestamos } } }\n\nconst map = {};\n\nfor (const it of items) {\n  const { identificacion, tipo, valor } = it.json || {};\n  if (!identificacion || !tipo) continue;\n  if (!map[identificacion]) map[identificacion] = {};\n  map[identificacion][tipo] = (map[identificacion][tipo] || 0) + (Number(valor) || 0);\n}\n\nreturn [{ json: { descuentos: map } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        368
+      ],
+      "id": "45a4be7e-1bef-4c96-841a-404c0f90ca6b",
+      "name": "Index descuentos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c658450b-4e88-427c-99c9-46c7b19cb3e3",
+              "name": "codigo_empresa",
+              "value": "={{ $json.empresa || 'QR' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        0
+      ],
+      "id": "6a1ebd9f-9c9f-4f29-849a-c724d4326be2",
+      "name": "Seleccionar empresa"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  regexp_replace(identificacion, '\\D', '', 'g') AS identificacion,\n  nombre                         AS db_nombre,\n  salario_base                   AS db_salario_base,\n  codigo_empresa                 AS db_codigo_empresa,\n  estado                         AS db_estado,\n  COALESCE(iess_quirograficos,0) AS db_iess_quirograficos,\n  COALESCE(sueldo_variable,0)    AS db_sueldo_variable,\n  COALESCE(transporte,0)         AS db_transporte,\n  COALESCE(movilizacion,0)       AS db_movilizacion,\n  COALESCE(compensacion,0)       AS db_compensacion,\n  COALESCE(utilidades,0)         AS db_utilidades,\n  COALESCE(otros_ingresos,0)     AS db_otros_ingresos,\n  COALESCE(anticipos,0)          AS db_anticipos,\n  COALESCE(prestamos_empresa,0)  AS db_prestamos_empresa,\n  COALESCE(crediflash,0)         AS db_crediflash,\n  COALESCE(saludsa,0)            AS db_saludsa,\n  COALESCE(decimos_mensual, true) AS db_decimos_mensual,\n  /* === AÑADE ESTA LÍNEA === */\n  valor_alimentacion_4_5         AS db_valor_alimentacion_4_5\nFROM empleados\nWHERE estado = 'activo'\n  {{ $json.codigo_empresa ? `AND codigo_empresa = '${$json.codigo_empresa}'` : '' }};\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        -16
+      ],
+      "id": "e2587719-4de6-4b2b-8bd8-ab183fff64a8",
+      "name": "Datos de empleados",
+      "credentials": {
+        "postgres": {
+          "id": "OGopVnSrpRrSCr56",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file0",
+        "options": {
+          "headerRow": true,
+          "range": "C3:V40",
+          "sheetName": "RESUMEN HORAS"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        512,
+        224
+      ],
+      "id": "b1dd8ec1-a4d1-42a7-856f-7665c9ae52c5",
+      "name": "Novedades mensuales"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta todas las claves que aparecen en algún item\nconst allKeys = new Set();\nfor (const { json } of items) {\n  for (const k of Object.keys(json)) allKeys.add(k);\n}\n\n// Helper para ubicar la columna de cédula\nconst norm = s => (s ?? '')\n  .toString()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')\n  .toLowerCase().trim();\n\nreturn items.map(({ json }) => {\n  const j = { ...json };\n\n  // identificacion limpia (solo dígitos) desde la columna que contenga \"cédula\"\n  const keyCed = Object.keys(j).find(k => norm(k).includes('cedula')) || '';\n  const ced = keyCed ? String(j[keyCed] ?? '').replace(/\\D/g, '') : '';\n  j.identificacion = ced;\n\n  // Relleno: cualquier campo ausente/undefined/null/'' -> 0\n  for (const k of allKeys) {\n    const v = j[k];\n    if (\n      v === undefined ||\n      v === null ||\n      (typeof v === 'string' && v.trim() === '') ||\n      (typeof v === 'string' && v.toLowerCase() === 'undefined') // por si venía como texto\n    ) {\n      j[k] = 0;\n    }\n  }\n\n  return { json: j };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        144
+      ],
+      "id": "a1ddb3cf-30b2-4648-b442-cde555429d97",
+      "name": "Limpiar informacion"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "babb651e-a3b5-4bda-94f6-d4cfbdd6cf57",
+              "name": "en_archivo",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "dc8de1bc-a84a-479a-9c8a-c2293474b38d",
+              "name": "en_db",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -16
+      ],
+      "id": "a4da1992-f4ea-4390-8ce3-169b2f25c2be",
+      "name": "Lista de empleados BD"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "775625f7-9b69-488e-b6c2-99161ce0909e",
+              "name": "en_archivo",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "3c462e59-44a5-4f40-b15b-5be20b3030fa",
+              "name": "en_db",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        144
+      ],
+      "id": "01845db7-3f0b-46d5-82ed-c15883db6995",
+      "name": "Lista empleados novedades"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        64
+      ],
+      "id": "3ba6099a-2095-47e7-b905-aa466a8ea8ff",
+      "name": "Empleados BD - Novedades"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * SET PERIODO (única fuente de fecha del flujo)\n * Lee fecha_nomina del Webhook (multipart/form-data => body.fecha_nomina)\n * Acepta: '2025-06', '2025-06-30', '202506', 'Junio 2025', 'jun-25', '2025 junio', etc.\n * Devuelve: fecha_nomina (último día), periodo_key (YYYYMM), periodo_inicio, periodo_fin, y, mo\n */\n\n// 1) Tomar la fecha del Webhook desde donde venga\nconst rawInput =\n  ($json?.body?.fecha_nomina) ??    // típico con curl.exe -F ...\n  ($json?.query?.fecha_nomina) ??   // por si la mandan en la URL ?fecha_nomina=...\n  ($json?.fecha_nomina) ??          // si llegase como JSON plano\n  '';\n\nconst raw = String(rawInput).trim();\nif (!raw) {\n  throw new Error('fecha_nomina no llegó en el Webhook. Envía -F \"fecha_nomina=2025-06\".');\n}\n\n// 2) Diccionario de meses en español\nconst MONTHS = {\n  enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6,\n  julio:7, agosto:8, septiembre:9, setiembre:9, octubre:10, noviembre:11, diciembre:12,\n  ene:1, feb:2, mar:3, abr:4, may:5, jun:6, jul:7, ago:8, sep:9, oct:10, nov:11, dic:12\n};\nconst MONTHS_NUM_TO_NAME = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\n\n// 3) Parser robusto\nfunction parsePeriodo(s){\n  s = s.toLowerCase().replace(',', ' ').trim();\n\n  // YYYYMM (6 dígitos)\n  let m = s.match(/^(\\d{4})(\\d{2})$/);\n  if (m) return { y: +m[1], mo: +m[2] };\n\n  // YYYY-MM(-DD)? o YYYY/MM(/DD)? o con espacios\n  m = s.match(/^(\\d{4})[-/.\\s](\\d{1,2})(?:[-/.\\s]\\d{1,2})?$/);\n  if (m) return { y: +m[1], mo: +m[2] };\n\n  // \"Junio 2025\", \"jun-25\", \"2025 junio\"\n  const tokens = s.split(/[-/.\\s]+/).filter(Boolean); // ej: [\"junio\",\"2025\"] o [\"jun\",\"25\"]\n  const tokYear4 = tokens.find(t => /^\\d{4}$/.test(t));\n  const tokYear2 = tokens.find(t => /^\\d{2}$/.test(t));\n  const year = tokYear4 ? +tokYear4\n            : tokYear2 ? +(String(new Date().getFullYear()).slice(0,2) + tokYear2)\n            : null;\n\n  const tokMonth = tokens.find(t => MONTHS[t] !== undefined);\n  if (year && tokMonth) return { y: year, mo: MONTHS[tokMonth] };\n\n  throw new Error(`No pude interpretar fecha_nomina: \"${s}\"`);\n}\n\n// 4) Cálculos del periodo\nconst { y, mo } = parsePeriodo(raw);\nif (!(mo >= 1 && mo <= 12)) throw new Error(`Mes fuera de rango: ${mo}`);\n\nfunction pad(n){ return (n < 10 ? '0' : '') + n; }\nfunction lastDayOfMonth(year, month /*1..12*/){ return new Date(year, month, 0).getDate(); }\n\nconst diaFin = lastDayOfMonth(y, mo);\nconst periodo_inicio = `${y}-${pad(mo)}-01`;\nconst fecha_nomina   = `${y}-${pad(mo)}-${pad(diaFin)}`; // último día del mes\nconst periodo_fin    = fecha_nomina;\nconst periodo_key    = `${y}${pad(mo)}`;\n\n// 5) Salida (un solo item)\nreturn [\n  {\n    json: {\n      fecha_nomina,        // p.ej. \"2025-06-30\"\n      periodo_key,         // \"202506\"\n      periodo_inicio,      // \"2025-06-01\"\n      periodo_fin,         // \"2025-06-30\"\n      y,                   // 2025\n      mo,                  // 6\n      month_name: MONTHS_NUM_TO_NAME[mo],   // \"junio\" (útil para reportes)\n      month_name_abbr: MONTHS_NUM_TO_NAME[mo].slice(0,3) // \"jun\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        352
+      ],
+      "id": "d2ee34bb-1331-42d3-85bf-489a1d461645",
+      "name": "Periodo nomina"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "multa"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        672,
+        512
+      ],
+      "id": "3c178b5b-b1c0-4a61-9088-d56e756accda",
+      "name": "Multas"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "crediflash"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        624
+      ],
+      "id": "3faf8398-c8e4-4554-a7d3-09eb840d1d16",
+      "name": "Crediflash"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "saludsa"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        784
+      ],
+      "id": "5a1eea1a-8a34-479d-8759-2ea2f97aefed",
+      "name": "Salud SA"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "seguro_accidentes"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        944
+      ],
+      "id": "d57c2b36-8c60-4b8c-9034-32cf2cce0ed9",
+      "name": "Seguro Accidentes"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "anticipos"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        1104
+      ],
+      "id": "9005860d-dd52-4a01-b474-77bdd8931d86",
+      "name": "Anticipos"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file1",
+        "options": {
+          "sheetName": "prestamos"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        1264
+      ],
+      "id": "40315dcf-54a1-418e-a6c2-03fd44b01fb3",
+      "name": "Prestamos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f2886c5c-c36a-480a-bc3c-10974983cd74",
+              "leftValue": "=={{ !!($item(0).binary && $item(0).binary.file2) }}\n",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        1424
+      ],
+      "id": "67334751-acc4-4df3-9b55-447f26c07232",
+      "name": "If Quirografario",
+      "executeOnce": true,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file3",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        464,
+        1584
+      ],
+      "id": "e7daf6e7-60a7-473b-ad8f-3442a2def60e",
+      "name": "Fondos de reserva"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = multa",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        512
+      ],
+      "id": "0f45bde9-d26b-46a3-9c59-960bc8252883",
+      "name": "Multas empleado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = crediflash",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        624
+      ],
+      "id": "600b296f-368b-4983-a11d-ff32be3a68b0",
+      "name": "Crediflash empleado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = saludsa",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        784
+      ],
+      "id": "90ae0e4a-9340-4207-8c40-427ba5e30b9f",
+      "name": "Salud SA empleado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = seguro_accidentes",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        944
+      ],
+      "id": "e0f4d6b2-3f20-46a3-a804-14bcf3dc2722",
+      "name": "Seguro accidentes empleado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = anticipos",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        1104
+      ],
+      "id": "4f34cfdc-f6e2-49b4-b2a3-2d9843706cd0",
+      "name": "Anticipos empleado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45359bb2-3762-4ad8-8698-23f0691ad4ce",
+              "name": "_tipo",
+              "value": "_tipo = prestamos",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        1264
+      ],
+      "id": "3c832d2b-84c0-4235-912f-7c597c94cf78",
+      "name": "Prestamos empleado"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        672,
+        1408
+      ],
+      "id": "ce8c88bd-e1ba-4812-a7f4-e329bfe3910f",
+      "name": "Prestamos quirografarios empleado"
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT: items[*].json.text con el texto del PDF (una o varias páginas/items)\n// OUTPUT: una lista de items { cedula, nombre, sucursal, fr_tiene_solicitud, fr_tiene_cargos, fr_derecho, fr_acumulacion, fr_fecha_solicitud, aportes_periodo }\n\nconst raw = items.map(it => (it?.json?.text || '')).join('\\n').toString();\n\n// Limpieza + normalización\nlet txt = raw\n  .replace(/\\u00a0/g, ' ')          // NBSP\n  .replace(/\\r/g, '')\n  .replace(/\\f/g, '\\n')\n  .replace(/[ \\t]+/g, ' ')\n  .replace(/Page\\s+\\d+\\s+of.*$/gmi, '')\n  .replace(/Página\\s+\\d+\\s+de.*$/gmi, '')\n  .replace(/SÍ/gmi, 'SI')\n  .trim();\n\n// Periodo de aportes\nlet aportes_periodo = null;\nconst mPer = txt.match(/CALIFICACION DE DERECHO FR CON APORTES DE:\\s*([A-ZÁÉÍÓÚÑ\\/0-9]+)/i);\nif (mPer) aportes_periodo = mPer[1].trim();\n\n// Regex robusto (igual que el que te funcionó)\nconst re = /(?<id>(?<!\\d)\\d{9,10}(?!\\d))\\s+(?<nombre>[\\s\\S]*?)\\s*(?<sucursal>\\d{4})\\s+(?<sol>SI|NO)\\s+(?<jam>(?:SI|NO)\\s*(?:SI|NO))(?<fecha>\\d{2}\\/\\d{2}\\/\\d{2})?/gmi;\n\nconst results = [];\nlet m;\n\nwhile ((m = re.exec(txt)) !== null) {\n  // Cédula siempre 10 dígitos (si viene 9, rellena a la izquierda)\n  const cedula = String(m.groups.id).slice(-10).padStart(10, '0');\n\n  let nombre = (m.groups.nombre || '')\n    .replace(/\\n+/g, ' ')\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n\n  const sucursal = m.groups.sucursal || null;\n  const tieneSolicitud = (m.groups.sol || '').toUpperCase() === 'SI';\n\n  const jamClean = (m.groups.jam || '').replace(/\\s+/g, '').toUpperCase();\n  const x1 = jamClean.slice(0, 2); // DERECHO\n  const x2 = jamClean.slice(2, 4); // CARGOS\n\n  const fr_derecho = x1 === 'SI';\n  const fr_tiene_cargos = x2 === 'SI';\n\n  const fr_fecha_solicitud = m.groups.fecha || null;\n\n  results.push({\n    cedula,\n    nombre,\n    sucursal,\n    fr_tiene_solicitud: tieneSolicitud,\n    fr_tiene_cargos: fr_tiene_cargos,\n    fr_derecho: fr_derecho,\n    fr_acumulacion: tieneSolicitud, // tu lógica\n    fr_fecha_solicitud,\n    aportes_periodo,\n  });\n}\n\n// Si te salen duplicados por páginas repetidas, este bloque se queda con el último por cédula.\n// (Puedes borrarlo si prefieres ver duplicados.)\nconst byCedula = {};\nfor (const r of results) byCedula[r.cedula] = r;\n\nreturn Object.values(byCedula).map(r => ({ json: r }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        1584
+      ],
+      "id": "db2b6be5-23e2-4536-a93a-249fe98a3a1a",
+      "name": "Limpieza y calculo fondos"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        736
+      ],
+      "id": "e8cc3ac6-03e6-4e5f-86e6-0f5b10e9abe1",
+      "name": "Union descuentos empleado"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1264,
+        368
+      ],
+      "id": "bda192f7-4f3a-46cd-b8cb-b5943962b5fc",
+      "name": "Descuentos por periodo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Toma el texto plano que entregó \"Extract from File\"\nconst txt = $json.text || \"\";\n\n// Helpers\nconst pick = (re) => {\n  const m = txt.match(re);\n  return m ? m[1].trim() : null;\n};\n\n// Encabezados (agarra la primera coincidencia, el PDF repite cabecera en la 2da página)\nconst empresa       = pick(/Nombre o Razón Social de la Empresa:\\s*([\\s\\S]*?)\\n/i);\nconst ruc           = pick(/R\\.U\\.C:\\s*([\\d-]+)/i);\nconst periodo       = pick(/Periodo:\\s*\\n?(\\d+)/i);\nconst fechaMaxPago  = pick(/Fecha Max\\. de pago:\\s*\\n?([0-9/]+)/i);\nconst representante = pick(/Apellidos y Nombre.*?\\n([^\\n]+)/i);\nconst totalReportado= pick(/(\\d[\\d.,]*)\\s*\\nTotal:/i);\n\n// Filas de detalle:  N°  CEDULA(10)  NOMBRE(S)  NUT  VALOR\n// Ej.: \"1 1721807046 AVEIGA AVEIGA CARLOS LUIS 16830227 96.43\"\nconst lineRE = /^\\s*\\d+\\s+(\\d{10})\\s+(.+?)\\s+(\\d+)\\s+(\\d+(?:\\.\\d{2})?)\\s*$/u;\n\nconst rows = [];\nfor (const raw of txt.split(/\\r?\\n/)) {\n  const line = raw.trim();\n  const m = line.match(lineRE);\n  if (m) {\n    rows.push({\n      cedula: m[1],\n      nombres: m[2],\n      nut: m[3],\n      valor: parseFloat(m[4]),\n    });\n  }\n}\n\n// (Opcional) suma para validar con el “Total” del PDF\nconst suma = rows.reduce((a, r) => a + (r.valor || 0), 0);\n\n// Devuelve un item por fila, incluyendo los metadatos del encabezado\nreturn rows.map(r => ({\n  json: {\n    ...r,\n    empresa,\n    ruc,\n    periodo: periodo ? Number(periodo) : null,\n    fechaMaxPago,\n    representante,\n    totalReportado,\n    sumaCalculada: Number(suma.toFixed(2)),\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        1408
+      ],
+      "id": "d7917a30-e7e9-4e08-851d-705fa6ef4ea0",
+      "name": "Limpieza prestamos quirografarios"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Code (JavaScript) — Pick mes (descuentos) ===\n// Run once for all items: ON\n//\n// Entrada: filas de descuentos (unidas de todas las hojas) con campo `_tipo` + columnas por mes.\n// Salida: un item por fila: { identificacion, tipo, valor } del mes seleccionado.\n\n// 1) Leer periodo (y/mo) del nodo de fecha, por nombre (independiente del puerto)\nconst PERIOD_CANDIDATES = ['set periodo', 'Set periodo', 'Code in JavaScript3', 'Code in JavaScript 3'];\nlet periodo = null;\n\nfor (const name of PERIOD_CANDIDATES) {\n  try {\n    const arr = $items(name);\n    if (arr?.length && arr[0]?.json?.y && arr[0]?.json?.mo) {\n      periodo = arr[0].json;\n      break;\n    }\n  } catch (_) {}\n}\nif (!periodo) {\n  // intento alterno por $node[...] (por si tu versión lo permite)\n  try { periodo = $node['Periodo nomina'].json; } catch(_) {}\n}\nif (!periodo?.y || !periodo?.mo) {\n  throw new Error('No pude leer y/mo desde \"set periodo\". Ejecuta ese nodo antes o revisa el nombre.');\n}\nconst y  = periodo.y;                 // 2025\nconst mo = periodo.mo;                // 6\nconst mm = String(mo).padStart(2,'0');\n\n// 2) Utilidades\nconst MES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst ABB = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];\nconst mesL = MES[mo];\nconst mesS = ABB[mo];\nconst y2   = String(y).slice(2);\n\nconst normalize = (s) =>\n  (s ?? '')\n    .toString()\n    .normalize('NFD').replace(/\\p{Diacritic}/gu,'')\n    .toLowerCase()\n    .replace(/\\s+/g,' ')\n    .trim();\n\nfunction toNumber(v){\n  if (v === null || v === undefined || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  let s = String(v).trim().replace(/[^\\d.,-]/g,'');\n  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');\n  if (lc > ld) s = s.slice(0, lc).replace(/[^\\d-]/g,'') + '.' + s.slice(lc+1).replace(/\\D/g,'');\n  else if (ld > lc) s = s.slice(0, ld).replace(/[^\\d-]/g,'') + '.' + s.slice(ld+1).replace(/\\D/g,'');\n  else s = s.replace(/[^\\d-]/g,'');\n  const n = Number(s);\n  return Number.isFinite(n) ? n : 0;\n}\nconst onlyDigits = (s) => (s ?? '').toString().replace(/\\D/g,'');\n\n// targets del encabezado que podrían representar el mes actual\nconst targets = new Set([\n  `${y}-${mm}`, `${y}/${mm}`, `${y} ${mm}`,\n  `${mm}-${y}`, `${mm}/${y}`, `${mm} ${y}`,\n  `${y}${mm}`,\n  `${mesL} ${y}`, `${mesS} ${y}`,\n  `${y} ${mesL}`, `${y} ${mesS}`,\n  `${mesS}-${y2}`, `${mesS}${y2}`,\n  `${mm}-${y2}`, `${mm}${y2}`,\n]);\n\nfunction headerMatches(h){\n  const nh = normalize(h);\n  if (targets.has(nh)) return true;\n  if (nh.includes(String(y)) && (nh.includes(mesL) || nh.includes(mesS) || nh.includes(mm) || nh.includes(String(mo)))) return true;\n  const digits = nh.replace(/\\D/g,'');\n  return digits === `${y}${mm}`;\n}\n\n// 3) Procesar filas\nconst out = [];\n\nfor (const it of items) {\n  const row = it.json || {};\n\n  // toma tipo etiquetado en los Set previos (Edit Fields3..8)\n  const tipo = (row._tipo ?? row.tipo ?? '').toString().trim().toLowerCase();\n\n  // identifica cédula en distintas variantes\n  const id = onlyDigits(row.identificacion ?? row.cedula ?? row['cédula'] ?? row.ci ?? row.dni);\n\n  // si viene un item “extra” (p.ej. del Merge2 en Append), lo ignoramos\n  if (!tipo || !id) continue;\n\n  // localizar la columna del mes\n  const keys = Object.keys(row).filter(k =>\n    !['_tipo','tipo','identificacion','cedula','cédula','ci','dni','nombre'].includes(k)\n  );\n\n  let valor = 0;\n  for (const k of keys) {\n    if (headerMatches(k)) { valor = toNumber(row[k]); break; }\n  }\n\n  out.push({ json: { identificacion: id, tipo, valor } });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        368
+      ],
+      "id": "83254d51-4b62-4fc2-a287-f6d37dbb0ea9",
+      "name": "Seleccionar mes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrupa por cédula y suma valores\nconst items = $input.all(); // viene del Function anterior (uno por fila)\n\nconst byId = new Map();\n\nfor (const { json } of items) {\n  const key = json.cedula;\n  if (!byId.has(key)) {\n    byId.set(key, {\n      cedula: key,\n      nombres: json.nombres,\n      // metadatos útiles (repiten por cada fila, tomamos la primera vez)\n      empresa: json.empresa,\n      ruc: json.ruc,\n      periodo: json.periodo,\n      fechaMaxPago: json.fechaMaxPago,\n      representante: json.representante,\n      totalReportado: json.totalReportado ?? null,\n      // acumuladores\n      total: 0,\n      detalle: [],      // lista de { nut, valor }\n      nuts: [],         // solo los NUTs si los quieres aparte\n      items: 0          // cuántas líneas aportó esta cédula\n    });\n  }\n\n  const acc = byId.get(key);\n  const v = Number(json.valor || 0);\n\n  acc.detalle.push({ nut: json.nut, valor: v });\n  acc.nuts.push(json.nut);\n  acc.total = Number((acc.total + v).toFixed(2));\n  acc.items += 1;\n}\n\n// Devolvemos un item por persona (cédula)\nreturn Array.from(byId.values()).map(p => ({ json: p }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        1408
+      ],
+      "id": "22f6e21e-8546-44f8-9793-ade4e3633358",
+      "name": "Suma por persona"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3cbd0960-886e-4c71-8130-e9bf8cc14736",
+              "name": "cedula",
+              "value": "={{$json.cedula}}",
+              "type": "string"
+            },
+            {
+              "id": "33533285-468a-4305-a161-40320a03ee6c",
+              "name": "nombre",
+              "value": "={{$json.nombres}}",
+              "type": "string"
+            },
+            {
+              "id": "db75506c-897f-4233-b11b-648a3bdea0ac",
+              "name": "monto_quiro",
+              "value": "={{ Number($json.total).toFixed(2) }}",
+              "type": "number"
+            },
+            {
+              "id": "0b784bc4-cfde-4855-b9f4-2b945445cc18",
+              "name": "periodo",
+              "value": "={{$json.periodo}}",
+              "type": "string"
+            },
+            {
+              "id": "c971db29-ef83-4caf-b3a8-bff37b60ea1b",
+              "name": "empresa",
+              "value": "={{$json.empresa}}",
+              "type": "string"
+            },
+            {
+              "id": "15f5388b-309a-4665-8601-e9db117fdea3",
+              "name": "ruc",
+              "value": "={{$json.ruc}}",
+              "type": "string"
+            },
+            {
+              "id": "7721e622-75be-45ff-aa4b-5dd0f67eb306",
+              "name": "nuts",
+              "value": "={{ Array.isArray($json.nuts) ? $json.nuts.join(',') : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b7b978f7-98b1-4f0a-bc49-171b8e015798",
+              "name": "origen",
+              "value": "IESS_QUIRO",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        1408
+      ],
+      "id": "25365c2e-7f17-4db7-80d8-6a3b3ac6674d",
+      "name": "Asignacion de valores"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "cedula",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1488,
+        1536
+      ],
+      "id": "0cf5efa9-1667-491d-84be-95a1a8566918",
+      "name": "Union fondos - quirografarios"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Code node — Limpieza/normalización final para nómina\n * - Prioridad de rubros: *_fix > archivo > campo normal > db_*\n * - Prorratea sueldo base por días trabajados: (salario_mensual/30)*dias_trabajados\n * - Mantiene décimos igual (según tu pedido)\n */\nconst APPLY_DEDUCCION_ATRASOS_Y_FALTAS = true;\nconst IESS_PERSONAL_PCT = 0.0945;   // 9.45%\nconst FONDO_RESERVA_PCT = 0.0833;   // 8.33%\nconst SUELDO_BASICO_DEC14 = 470;    // se mantiene igual\n\nfunction isPresent(v) {\n  return v !== null && v !== undefined && v !== '' && v !== '-' && !(typeof v === 'number' && Number.isNaN(v));\n}\n\nfunction toNumber(v, def = 0) {\n  if (!isPresent(v)) return def;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : def;\n\n  let s = String(v).trim();\n  const hasComma = s.includes(',');\n  const hasDot = s.includes('.');\n\n  if (hasComma && !hasDot) s = s.replace(',', '.');\n  if (hasComma && hasDot) s = s.replace(/,/g, '');\n\n  const n = parseFloat(s);\n  return Number.isFinite(n) ? n : def;\n}\n\nfunction round2(n) {\n  return Math.round((n + Number.EPSILON) * 100) / 100;\n}\n\nfunction pickFirst(...vals) {\n  for (const v of vals) if (isPresent(v)) return v;\n  return null;\n}\n\nfunction sumNumbers(...vals) {\n  return round2(vals.reduce((acc, v) => acc + toNumber(v, 0), 0));\n}\n\n/**\n * Extrae rubros y calcula:\n * - salario_mensual (FULL)\n * - dias_trabajados (prioridad fix -> input -> excel -> 30)\n * - salario_base (PAGABLE prorrateado)\n */\nfunction extractRubros(e) {\n  // ✅ Salario mensual FULL (contrato/DB/Excel)\n  const salario_mensual = round2(toNumber(pickFirst(\n    e.salario_base,\n    e.db_salario_base,\n    e.SUELDO,\n    e['SUELDO']\n  ), 0));\n\n  // ✅ DÍAS TRABAJADOS (FIX primero, luego input normalizado, luego Excel, luego default)\n  const dias_trabajados = round2(toNumber(pickFirst(\n    e.dias_trabajados_fix,\n    e.dias_trabajados,\n    e['Días Trabajados'],\n    e['DIAS TRABAJADOS'],\n    30\n  ), 30));\n\n  // ✅ Tarifa diaria basada en salario mensual\n  const daily_rate_mensual = salario_mensual > 0 ? (salario_mensual / 30) : 0;\n\n  // ✅ Salario base PAGABLE (prorrateado por días trabajados)\n  const salario_base = round2(daily_rate_mensual * dias_trabajados);\n\n  const sueldo_variable = round2(toNumber(pickFirst(\n    e.sueldo_variable_fix,\n    e['SUELDO VARIABLE-1032'],\n    e['SUELDO VARIABLE'],\n    e.sueldo_variable,\n    e.db_sueldo_variable\n  ), 0));\n\n  const transporte = round2(toNumber(pickFirst(\n    e.transporte_fix,\n    e['TRANSPORTE - 1050'],\n    e['TRANSPORTE-1050'],\n    e.transporte,\n    e.db_transporte\n  ), 0));\n\n  const movilizacion = round2(toNumber(pickFirst(\n    e.movilizacion_fix,\n    e['MOVILIZACION - 1042'],\n    e['MOVILIZACION-1042'],\n    e.movilizacion,\n    e.db_movilizacion\n  ), 0));\n\n  const otros_ingresos = round2(toNumber(pickFirst(\n    e.otros_ingresos_fix,\n    e['OTROS INGRESOS'],\n    e['OTROS INGRESOS-2183'],\n    e.otros_ingresos,\n    e.db_otros_ingresos\n  ), 0));\n\n  const compensacion = round2(toNumber(pickFirst(\n    e.compensacion_fix,\n    e['COMPENSACION'],\n    e.compensacion,\n    e.db_compensacion\n  ), 0));\n\n  const utilidades = round2(toNumber(pickFirst(\n    e.utilidades_fix,\n    e.utilidades,\n    e.db_utilidades\n  ), 0));\n\n  // Horas extras (horas)\n  const he50_horas = round2(toNumber(pickFirst(\n    e.he50_horas,\n    e['HE 50% CANTIDAD'],\n    e['HE50 CANTIDAD'],\n    e['50%']\n  ), 0));\n\n  const he100_horas = round2(toNumber(pickFirst(\n    e.he100_horas,\n    e['HE 100% CANTIDAD'],\n    e['HE100 CANTIDAD'],\n    e['100%']\n  ), 0));\n\n  /**\n   * ✅ IMPORTANTE:\n   * La tarifa por hora conviene basarla en el salario mensual FULL (contrato),\n   * aunque el sueldo del mes se pague prorrateado.\n   */\n  const hora_base = salario_mensual > 0 ? (daily_rate_mensual / 8) : 0;\n  const he50_valor = round2(toNumber(pickFirst(e.he50_valor), 0) || (he50_horas * hora_base * 1.5));\n  const he100_valor = round2(toNumber(pickFirst(e.he100_valor), 0) || (he100_horas * hora_base * 2));\n\n  // Alimentación\n  const alimentacion_dias = round2(toNumber(pickFirst(\n    e.dias_alimentacion_fix,\n    e.alimentacion_dias,\n    e['ALIMENTACION'],\n    e['Alimentación'],\n    e['DIAS ALIMENTACION']\n  ), 0));\n\n  const tarifa_45 = Boolean(pickFirst(e.valor_alimentacion_4_5, e.db_valor_alimentacion_4_5));\n  const alimentacion_tarifa = tarifa_45 ? 4.5 : 2.5;\n  const alimentacion_valor = round2(alimentacion_dias * alimentacion_tarifa);\n\n  // Atrasos y faltas\n  const atrasos_dias = round2(toNumber(pickFirst(\n    e.atrasos_dias,\n    e['Días a descontar por ATRASOS'],\n    e['DIAS A DESCONTAR POR ATRASOS'],\n    0\n  ), 0));\n\n  const faltas = round2(toNumber(pickFirst(\n    e.faltas,\n    e['Total Faltas'],\n    e['TOTAL FALTAS'],\n    e['Faltas Injst.'],\n    0\n  ), 0));\n\n  return {\n    // ✅ ambos: FULL y PAGABLE\n    salario_mensual,\n    salario_base, // prorrateado (pagable)\n\n    sueldo_variable,\n    transporte,\n    movilizacion,\n    otros_ingresos,\n    compensacion,\n    utilidades,\n\n    he50_horas,\n    he50_valor,\n    he100_horas,\n    he100_valor,\n\n    alimentacion_dias,\n    alimentacion_tarifa,\n    alimentacion_valor,\n\n    dias_trabajados,\n    atrasos_dias,\n    faltas,\n\n    hora_base: round2(hora_base),\n    daily_rate_mensual: round2(daily_rate_mensual)\n  };\n}\n\nfunction computeFondoReserva(e, total_ingresos_iess) {\n  const derecho = Boolean(e.fr_derecho);\n  const modo = e.fr_modo || (derecho ? 'paga' : 'sin_derecho');\n\n  const fix = isPresent(e.fondo_reserva_fix) ? toNumber(e.fondo_reserva_fix, null) : null;\n\n  if (!derecho) {\n    return { derecho: false, modo: 'sin_derecho', calculado: 0, pagado: 0, acumulado: 0, fix_usado: false };\n  }\n\n  const calculado = round2((fix !== null ? fix : (total_ingresos_iess * FONDO_RESERVA_PCT)));\n  const paga = modo === 'paga';\n  return {\n    derecho: true,\n    modo,\n    calculado,\n    pagado: paga ? calculado : 0,\n    acumulado: paga ? 0 : calculado,\n    fix_usado: fix !== null\n  };\n}\n\nfunction processEmployee(e) {\n  const r = extractRubros(e);\n\n  // ✅ Base IESS: aportables (ya con salario_base prorrateado)\n  const total_ingresos_iess = sumNumbers(\n    r.salario_base,        // ✅ prorrateado\n    r.sueldo_variable,\n    r.transporte,\n    r.movilizacion,\n    r.otros_ingresos,\n    r.he50_valor,\n    r.he100_valor\n  );\n\n  const total_no_aportables = sumNumbers(r.alimentacion_valor, r.compensacion);\n  const utilidades_no_aportables = r.utilidades;\n\n  const ingresos_pagables = sumNumbers(total_ingresos_iess, total_no_aportables, utilidades_no_aportables);\n\n  // ✅ Décimos: se mantienen igual\n  const decimos_mensual = Boolean(pickFirst(e.db_decimos_mensual, e.decimos_mensual, true));\n  const decimo_13 = decimos_mensual ? round2(total_ingresos_iess / 12) : 0;\n\n  const dias_dec14 = isPresent(r.dias_trabajados) ? r.dias_trabajados : 30;\n  const decimo_14 = decimos_mensual ? round2((SUELDO_BASICO_DEC14 / 360) * dias_dec14) : 0;\n\n  const fondo_reserva = computeFondoReserva(e, total_ingresos_iess);\n\n  // Descuentos\n  const d0 = e.descuentos || {};\n  const anticipos = round2(toNumber(pickFirst(e.desc_anticipos, d0.anticipos, e.db_anticipos), 0));\n  const prestamos_empresa = round2(toNumber(pickFirst(e.desc_prestamos, d0.prestamos_empresa, e.db_prestamos_empresa), 0));\n  const crediflash = round2(toNumber(pickFirst(e.desc_crediflash, d0.crediflash, e.db_crediflash), 0));\n  const saludsa = round2(toNumber(pickFirst(e.desc_saludsa, d0.saludsa, e.db_saludsa), 0));\n  const seguro_accidentes = round2(toNumber(pickFirst(e.desc_seguro_accidentes, d0.seguro_accidentes), 0));\n  const multa = round2(toNumber(pickFirst(e.desc_multa, d0.multa), 0));\n\n  const iess_quiro_monto = round2(toNumber(pickFirst(\n    e.iess_quiro_monto,\n    d0.iess_quiro_monto,\n    e.monto_quiro\n  ), 0));\n\n  // ✅ deducción días: usar daily_rate del salario mensual (no del prorrateado)\n  const daily_rate = r.daily_rate_mensual || round2(r.salario_mensual / 30);\n  const deduccion_dias = APPLY_DEDUCCION_ATRASOS_Y_FALTAS\n    ? round2(daily_rate * (r.faltas + r.atrasos_dias))\n    : round2(toNumber(pickFirst(d0.deduccion_dias, e.deduccion_dias), 0));\n\n  const ap_pers_iess = round2(total_ingresos_iess * IESS_PERSONAL_PCT);\n\n  const total_descuentos = sumNumbers(\n    anticipos,\n    prestamos_empresa,\n    crediflash,\n    saludsa,\n    seguro_accidentes,\n    multa,\n    iess_quiro_monto,\n    deduccion_dias,\n    ap_pers_iess\n  );\n\n  const descuentos = {\n    anticipos,\n    prestamos_empresa,\n    crediflash,\n    saludsa,\n    seguro_accidentes,\n    multa,\n    iess_quiro_monto,\n    deduccion_dias,\n    ap_pers_iess,\n    total_descuentos\n  };\n\n  const bruto_recibir = sumNumbers(ingresos_pagables, decimo_13, decimo_14, fondo_reserva.pagado);\n  const valor_final_recibir = round2(bruto_recibir - total_descuentos);\n\n  const costo_empleador = sumNumbers(ingresos_pagables, decimo_13, decimo_14, fondo_reserva.calculado);\n\n  return {\n    ...e,\n\n    // ✅ sueldo full y sueldo prorrateado visibles\n    salario_mensual: r.salario_mensual,\n    salario_base: r.salario_base, // prorrateado (pagable)\n\n    sueldo_variable: r.sueldo_variable,\n    transporte: r.transporte,\n    movilizacion: r.movilizacion,\n    utilidades: r.utilidades,\n    otros_ingresos: r.otros_ingresos,\n    compensacion: r.compensacion,\n\n    he50_horas: r.he50_horas,\n    he50_valor: r.he50_valor,\n    he100_horas: r.he100_horas,\n    he100_valor: r.he100_valor,\n\n    alimentacion_dias: r.alimentacion_dias,\n    alimentacion_tarifa: r.alimentacion_tarifa,\n    alimentacion_valor: r.alimentacion_valor,\n\n    dias_trabajados: r.dias_trabajados,\n\n    ingresos: {\n      salario_base: r.salario_base, // ✅ prorrateado\n      sueldo_variable: r.sueldo_variable,\n      transporte: r.transporte,\n      movilizacion: r.movilizacion,\n      utilidades: r.utilidades,\n      otros_ingresos: r.otros_ingresos,\n      he50_valor: r.he50_valor,\n      he100_valor: r.he100_valor,\n      alimentacion_valor: r.alimentacion_valor,\n      compensacion: r.compensacion,\n\n      total_no_aportables,\n      total_ingresos_iess,\n      ingresos_pagables\n    },\n\n    decimos: {\n      mensual: decimos_mensual,\n      decimo_13: round2(decimo_13),\n      decimo_14: round2(decimo_14)\n    },\n\n    fondo_reserva,\n    descuentos,\n\n    valor_final_recibir,\n    costo_empleador,\n\n    _calc_meta: {\n      hora_base: r.hora_base,\n      daily_rate_mensual: r.daily_rate_mensual,\n      salario_mensual: r.salario_mensual,\n      salario_base_prorrateado: r.salario_base,\n      dias_trabajados_fix: toNumber(e.dias_trabajados_fix, 0),\n      dias_trabajados_input: toNumber(e.dias_trabajados, 0),\n      dias_trabajados_excel: toNumber(e['Días Trabajados'], 0),\n      faltas: r.faltas,\n      atrasos_dias: r.atrasos_dias\n    }\n  };\n}\n\n/**\n * Entrada:\n *  A) [{ json: { ... meta ..., empleados:[...] } }]\n *  B) [{ json: { ... empleado ... } }, ...]\n */\nconst items = $input.all();\n\nreturn items.map(item => {\n  const j = item.json;\n\n  if (Array.isArray(j.empleados)) {\n    const empleados = j.empleados.map(processEmployee);\n    return { json: { ...j, empleados } };\n  }\n\n  return { json: processEmployee(j) };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3632,
+        1040
+      ],
+      "id": "7ed8024b-7a32-4521-946f-24a3f79fb29a",
+      "name": "Cálculo de nónima"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Code (JavaScript) — Preparar filas para Excel (nómina_detalle) ===\n// Run once for all items: ON\n\n// 1) Validación de entrada\nif (!items?.length || !items[0]?.json) {\n  return [{ json: { error: 'No hay datos de entrada válidos (esperado items[0].json)' } }];\n}\n\nconst lote = items[0].json;\nif (!Array.isArray(lote?.empleados)) {\n  return [{ json: { error: 'Estructura inválida: falta array empleados en lote' } }];\n}\n\n// 2) Helper para redondeo y limpieza numérica\nconst r2 = (x) => Math.round((Number(x) + Number.EPSILON) * 100) / 100;\nconst numOr0 = (v) => (typeof v === 'number' ? v : Number(v || 0));\n\n// Helper para normalizar texto (orden alfabético consistente, sin tildes)\nconst normText = (v) =>\n  String(v ?? '')\n    .trim()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '') // quita tildes\n    .toUpperCase();\n\n// 3) Definimos orden de columnas del Excel (puedes ajustar sin romper nada)\nconst COLS = [\n  'empresa','periodo_key','fecha_nomina','periodo_inicio','periodo_fin',\n  'identificacion','nombre','estado','dias_trabajados','faltas_injustificadas','atrasos_dias','fs_feriado',\n  'salario_base','sueldo_variable','transporte','movilizacion','utilidades','otros_ingresos',\n  'he50_horas','he50_valor','he100_horas','he100_valor',\n  'alimentacion_dias','alimentacion_tarifa','alimentacion_valor','compensacion',\n  'total_no_aportables','total_ingresos_iess','ingresos_pagables',\n  'decimo_13','decimo_14',\n  'fr_derecho','fr_modo','fr_calculado','fr_pagado','fr_acumulado',\n  'anticipos','prestamos_empresa','crediflash','saludsa','seguro_accidentes','iess_quiro_monto',\n  'deduccion_dias','ap_pers_iess','total_descuentos',\n  'valor_final_recibir','costo_empleador'\n];\n\n// 4) Orden alfabético del personal (por nombre; fallback por identificación)\nconst empleadosOrdenados = [...lote.empleados].sort((a, b) => {\n  const an = normText(a?.nombre);\n  const bn = normText(b?.nombre);\n\n  // Si ambos tienen nombre, ordena por nombre\n  if (an && bn) {\n    const c = an.localeCompare(bn, 'es', { sensitivity: 'base' });\n    if (c !== 0) return c;\n  } else if (an || bn) {\n    // Si solo uno tiene nombre, ese va primero\n    return an ? -1 : 1;\n  }\n\n  // Desempate / fallback: identificación\n  const ai = normText(a?.identificacion);\n  const bi = normText(b?.identificacion);\n  return ai.localeCompare(bi, 'es', { sensitivity: 'base' });\n});\n\n// 5) Transformación: empleado -> fila Excel\nconst filas = empleadosOrdenados.map((e) => {\n  const ing  = e.ingresos || {};\n  const dec  = e.decimos || {};\n  const fr   = e.fondo_reserva || {};\n  const desc = e.descuentos || {};\n  const alimMeta = e._alim_meta || {};\n  const calcMeta = e._calc_meta || {};\n\n  // === Asistencias / días ===\n  // Usamos el valor ya calculado por el nodo de nómina (que respeta dias_trabajados_fix)\n  const diasTrabajados = (typeof e.dias_trabajados === 'number' && !Number.isNaN(e.dias_trabajados))\n    ? e.dias_trabajados\n    : 30;\n\n  // Faltas / atrasos:\n  //  - Preferimos campos directos si existen\n  //  - Si no, usamos los que vienen en _calc_meta (los calculó el nodo de nómina)\n  const faltasInj = (typeof e.faltas_injustificadas === 'number')\n    ? e.faltas_injustificadas\n    : (typeof calcMeta.faltas === 'number' ? calcMeta.faltas : 0);\n\n  const atrasosDias = (typeof e.atrasos_dias === 'number')\n    ? e.atrasos_dias\n    : (typeof calcMeta.atrasos_dias === 'number' ? calcMeta.atrasos_dias : 0);\n\n  // === Alimentación ===\n  //  - días: los que realmente se usaron en el cálculo (después de fix/clamp)\n  //  - tarifa: la tarifa usada en el cálculo (2.5 o 4.5)\n  const alimDiasUsados =\n    (typeof alimMeta.dias_usados === 'number' && !Number.isNaN(alimMeta.dias_usados))\n      ? alimMeta.dias_usados\n      : numOr0(e.alimentacion_dias);\n\n  const alimTarifaUsada =\n    (typeof alimMeta.tarifa_usada === 'number' && !Number.isNaN(alimMeta.tarifa_usada))\n      ? alimMeta.tarifa_usada\n      : (e.valor_alimentacion_4_5 === true ? 4.50 : 2.50);\n\n  const fila = {\n    // Contexto del periodo (repetido por fila para pivotar/filtros en Excel)\n    empresa: lote.empresa || '',\n    periodo_key: lote.periodo_key || '',\n    fecha_nomina: lote.fecha_nomina || '',\n    periodo_inicio: lote.periodo_inicio || '',\n    periodo_fin: lote.periodo_fin || '',\n\n    // Identificación\n    identificacion: e.identificacion || '',\n    nombre: e.nombre || '',\n    estado: e.estado || '',\n\n    // Asistencias / marcaciones\n    dias_trabajados: r2(numOr0(diasTrabajados)),\n    faltas_injustificadas: r2(numOr0(faltasInj)),\n    atrasos_dias: r2(numOr0(atrasosDias)),\n    fs_feriado: r2(numOr0(e.fs_feriado)),\n\n    // Ingresos base\n    salario_base: r2(numOr0(ing.salario_base)),\n    sueldo_variable: r2(numOr0(ing.sueldo_variable)),\n    transporte: r2(numOr0(ing.transporte)),\n    movilizacion: r2(numOr0(ing.movilizacion)),\n    utilidades: r2(numOr0(ing.utilidades)),\n    otros_ingresos: r2(numOr0(ing.otros_ingresos)),\n\n    // Horas extra\n    he50_horas: r2(numOr0(e.he50_horas)),\n    he50_valor: r2(numOr0(ing.he50_valor)),\n    he100_horas: r2(numOr0(e.he100_horas)),\n    he100_valor: r2(numOr0(ing.he100_valor)),\n\n    // Alimentación (no aportable)\n    alimentacion_dias: r2(numOr0(alimDiasUsados)),\n    alimentacion_tarifa: r2(numOr0(alimTarifaUsada)),\n    alimentacion_valor: r2(numOr0(ing.alimentacion_valor)),\n    compensacion: r2(numOr0(ing.compensacion)),\n\n    // Totales de ingresos\n    total_no_aportables: r2(numOr0(ing.total_no_aportables)),\n    total_ingresos_iess: r2(numOr0(ing.total_ingresos_iess)),\n    ingresos_pagables: r2(numOr0(ing.ingresos_pagables)),\n\n    // Décimos (mensualizados)\n    decimo_13: r2(numOr0(dec.decimo_13)),\n    decimo_14: r2(numOr0(dec.decimo_14)),\n\n    // Fondo de Reserva\n    fr_derecho: !!fr.derecho,\n    fr_modo: fr.modo || 'sin_derecho',\n    fr_calculado: r2(numOr0(fr.calculado)),\n    fr_pagado: r2(numOr0(fr.pagado)),\n    fr_acumulado: r2(numOr0(fr.acumulado)),\n\n    // Descuentos\n    anticipos: r2(numOr0(desc.anticipos)),\n    prestamos_empresa: r2(numOr0(desc.prestamos_empresa)),\n    crediflash: r2(numOr0(desc.crediflash)),\n    saludsa: r2(numOr0(desc.saludsa)),\n    seguro_accidentes: r2(numOr0(desc.seguro_accidentes)),\n    iess_quiro_monto: r2(numOr0(desc.iess_quiro_monto)),\n    deduccion_dias: r2(numOr0(desc.deduccion_dias)), // faltas + atrasos monetizados\n    ap_pers_iess: r2(numOr0(desc.ap_pers_iess)),\n    total_descuentos: r2(numOr0(desc.total_descuentos)),\n\n    // Totales finales\n    valor_final_recibir: r2(numOr0(e.valor_final_recibir)),\n    costo_empleador: r2(numOr0(e.costo_empleador)),\n  };\n\n  // 6) Forzamos el orden de columnas (útil para el Spreadsheet File)\n  const ordenada = {};\n  COLS.forEach((k) => { ordenada[k] = (k in fila) ? fila[k] : ''; });\n  return ordenada;\n});\n\n// 7) Salida: una fila por item.json (para que el Spreadsheet File las escriba en un solo XLSX)\nreturn filas.map((row) => ({ json: row }));\n\n/*\nNOTA:\n- Si quieres una fila de TOTALES al final, puedes agregar:\nconst suma = (key) => r2(filas.reduce((acc, f) => acc + (typeof f[key]==='number' ? f[key] : 0), 0));\nconst totalRow = { ...Object.fromEntries(COLS.map(c => [c, ''])) };\ntotalRow.nombre = 'TOTAL';\n['salario_base','sueldo_variable','transporte','movilizacion','utilidades','otros_ingresos',\n 'he50_valor','he100_valor','alimentacion_valor','compensacion','total_no_aportables',\n 'total_ingresos_iess','ingresos_pagables','decimo_13','decimo_14','fr_calculado','fr_pagado',\n 'anticipos','prestamos_empresa','crediflash','saludsa','seguro_accidentes','iess_quiro_monto',\n 'deduccion_dias','ap_pers_iess','total_descuentos','valor_final_recibir','costo_empleador'\n].forEach(k => totalRow[k] = suma(k));\nreturn [...filas.map(r => ({ json: r })), { json: totalRow }];\n*/\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        1040
+      ],
+      "id": "51944006-f4f5-4a97-b4e2-f7cd73cd5f40",
+      "name": "Limpieza de informacion"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        4064,
+        1040
+      ],
+      "id": "1df3465c-e0f5-45e4-8965-1db2e0a80a31",
+      "name": "Exportar a excel"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Function — Unir Excel+DB (robusto, con limpieza de alias correcta) ===\n// Run once for all items: ON\n\nconst APPLY_FILTER = true; // pon false si quieres ver TODO sin filtrar\n\nconst onlyDigits = s => (s ?? '').toString().replace(/\\D/g,'');\nconst toNum = v => {\n  if (v === null || v === undefined || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  let s = String(v).trim().replace(/[^\\d.,-]/g,'');\n  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');\n  if (lc > ld) s = s.slice(0, lc).replace(/[^\\d-]/g,'') + '.' + s.slice(lc+1).replace(/\\D/g,'');\n  else if (ld > lc) s = s.slice(0, ld).replace(/[^\\d-]/g,'') + '.' + s.slice(ld+1).replace(/\\D/g,'');\n  else s = s.replace(/[^\\d-]/g,'');\n  const n = Number(s);\n  return Number.isFinite(n) ? n : 0;\n};\n\n// Detectores de procedencia\nconst looksDB = (o) => {\n  if (!o) return false;\n  if ('en_db' in o) return !!o.en_db;\n  return Object.keys(o).some(k => k.startsWith('db_')) || ('db_estado' in o);\n};\n\nconst looksArchivo = (o) => {\n  if (!o) return false;\n  if ('en_archivo' in o) return !!o.en_archivo;\n  const keys = Object.keys(o).map(k => k.toLowerCase());\n  const set = new Set(keys);\n  const possibles = [\n    'alimentacion_dias','dias_alimentacion','alimentacion','alimentación',\n    'alimentaciondias','diasalimentacion','alimentación_días',\n    'alimentaciòn','alimen', // variante con ò\n    'he_50_cantidad','he_100_cantidad','he50','he100','50','100',\n    'atrasos_dias','faltas_injustificadas','permiso','reposo',\n    'sueldo_variable','transporte','movilizacion','otros_ingresos'\n  ];\n  return possibles.some(k => set.has(k));\n};\n\n// --- Alimentación: CANON + ALIASES (¡no borres el CANON!)\nconst ALIM_DIAS_CANON = 'alimentacion_dias';\nconst ALIM_DIAS_ALIASES = [\n  'dias_alimentacion','alimentacion','alimentación',\n  'alimentaciondias','diasalimentacion','alimentación_días',\n  'Alimentación','Alimentaciòn','alimentaciòn'\n];\n\n// Busca días de alimentación en CANON primero, luego en ALIASES\nconst pickAlimDias = (obj) => {\n  if (Object.prototype.hasOwnProperty.call(obj, ALIM_DIAS_CANON)) {\n    const n = toNum(obj[ALIM_DIAS_CANON]);\n    if (Number.isFinite(n)) return n;\n  }\n  for (const k of ALIM_DIAS_ALIASES) {\n    if (Object.prototype.hasOwnProperty.call(obj, k)) {\n      const n = toNum(obj[k]);\n      if (Number.isFinite(n)) return n;\n    }\n  }\n  return null;\n};\n\n// Derivar identificación aunque la columna cambie (Cédula/CI/DNI/etc)\nconst getId = (row) => {\n  const direct = row.identificacion ?? row.cedula ?? row.CI ?? row.DNI ?? row.Id ?? row.ID ?? row['Cédula'];\n  if (direct) {\n    const d = onlyDigits(direct);\n    if (d) return d;\n  }\n  for (const [k,v] of Object.entries(row)) {\n    const nk = k.normalize('NFD').replace(/\\p{Diacritic}/gu,'').toLowerCase();\n    if (/(ident|cedul|dni|ced|ci)\\b/.test(nk)) {\n      const d = onlyDigits(v);\n      if (d) return d;\n    }\n  }\n  return '';\n};\n\nconst map = new Map();\n\nfor (const { json } of items) {\n  const id = getId(json);\n  if (!id) continue;\n\n  const prev = map.get(id) || { identificacion: id, en_archivo: false, en_db: false };\n  const merged = { ...prev, ...json }; // merge superficial\n\n  // Procedencia (inferida si no viene)\n  const inferDB = looksDB(json);\n  const inferArchivo = looksArchivo(json);\n  merged.en_db = prev.en_db || !!json.en_db || inferDB;\n  merged.en_archivo = prev.en_archivo || !!json.en_archivo || inferArchivo;\n\n  // Conserva estado de DB si viene\n  if (json.db_estado !== undefined) merged.db_estado = json.db_estado;\n\n  // --- Alimentación: prioriza archivo; no pisar un >0 previo con 0\n  const diasNew  = pickAlimDias(json);\n  const diasPrev = (ALIM_DIAS_CANON in prev) ? toNum(prev[ALIM_DIAS_CANON]) : null;\n\n  if (diasNew !== null) {\n    if (inferArchivo || json.en_archivo) {\n      merged[ALIM_DIAS_CANON] = (diasPrev !== null && diasPrev > 0 && diasNew === 0) ? diasPrev : diasNew;\n      merged._alimdias_source = 'archivo';\n    } else {\n      // viene de DB u otros; si no había previo, lo tomamos\n      if (!(diasPrev !== null)) {\n        merged[ALIM_DIAS_CANON] = diasNew;\n        merged._alimdias_source = merged._alimdias_source || 'otro';\n      }\n    }\n  } else if (diasPrev !== null) {\n    merged[ALIM_DIAS_CANON] = diasPrev;\n  }\n\n  // 🔧 Canonicaliza: elimina SOLO alias crudos (NUNCA el CANON)\n  for (const k of ALIM_DIAS_ALIASES) {\n    if (k in merged) delete merged[k];\n  }\n\n  map.set(id, merged);\n}\n\n// Filtro final\nlet out = Array.from(map.values());\nif (APPLY_FILTER) {\n  let filtered = out.filter(r => {\n    if (r.en_archivo) return true;\n    const estado = String(r.db_estado ?? 'activo').toLowerCase();\n    if (r.en_db && estado === 'activo') return true;\n    return false;\n  });\n  if (filtered.length) out = filtered;\n  else console.warn('⚠️ Unir Excel+DB: filtro dejó 0 items; devolviendo SIN FILTRAR.');\n}\n\n// Log rápido\nconst stats = {\n  input_items: items.length,\n  ids_conocidos: map.size,\n  salida: out.length,\n  with_any_alim_dias: out.filter(x => Object.prototype.hasOwnProperty.call(x, ALIM_DIAS_CANON)).length,\n  with_alim_dias_gt0: out.filter(x => toNum(x[ALIM_DIAS_CANON]) > 0).length,\n  flag_db_true: out.filter(x => x.db_valor_alimentacion_4_5 === true).length,\n  flag_db_false: out.filter(x => x.db_valor_alimentacion_4_5 === false).length\n};\nconsole.log('== Unir Excel+DB (stats) ==', stats);\n\n// Fallback extremo\nif (!out.length) {\n  console.warn('⚠️ Unir Excel+DB: sin items de salida; devolviendo items originales como fallback.');\n  return items;\n}\n\nreturn out.map(json => ({ json }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        64
+      ],
+      "id": "fbb07316-28c6-4d8f-96e8-e68f3de81eca",
+      "name": "Unir Excel con DB"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recorremos los items que llegan del Webhook\nfor (const item of items) {\n  if (!item.binary) continue;\n\n  // Recorremos todas las propiedades binarias: file0, file1, file2, file3, file4...\n  for (const key of Object.keys(item.binary)) {\n    const bin = item.binary[key];\n\n    // Si este binario es el archivo ajustes.xlsx, corregimos su metadata\n    if (bin.fileName === 'ajustes.xlsx') {\n      bin.fileExtension = 'xlsx';\n      bin.mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';\n    }\n  }\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        1776
+      ],
+      "id": "f3d6e4e6-322b-4550-b5f1-58a86729b316",
+      "name": "Fix binario ajustes.xlsx"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "file4",
+        "options": {
+          "headerRow": true,
+          "sheetName": "={{ $json[\"fecha_nomina\"].split('-')[1] + '-' + $json[\"fecha_nomina\"].split('-')[0] }}"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        672,
+        1776
+      ],
+      "id": "7762a1ba-693f-42b2-9436-acec31bff970",
+      "name": "Leer Ajustes"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "identificacion",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2512,
+        736
+      ],
+      "id": "d85c87a9-1bd0-4b5b-a50d-c73cf3427e1e",
+      "name": "Base FR"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Ajustes nómina limpios\n\nconst onlyDigits = s => (s ?? '').toString().replace(/\\D/g,'');\n\nfor (const item of items) {\n  const j = item.json;\n\n  // 1) Normalizar empresa (mayúsculas, sin espacios)\n  j.empresa = (j.empresa ?? '').toString().trim().toUpperCase();\n\n  // 2) Cédula: solo dígitos\n  j.identificacion = onlyDigits(j.identificacion);\n\n  // 3) Nombre: quitar espacios sobrantes\n  if (j.nombre != null) {\n    j.nombre = j.nombre.toString().trim();\n  }\n\n  // 4) Asegurar tipos numéricos en los *_fix\n  if (j.dias_trabajados_fix != null && j.dias_trabajados_fix !== '') {\n    j.dias_trabajados_fix = Number(j.dias_trabajados_fix);\n  }\n\n  if (j.utilidades_fix != null && j.utilidades_fix !== '') {\n    j.utilidades_fix = Number(j.utilidades_fix);\n  }\n\n  if (j.dias_alimentacion_fix != null && j.dias_alimentacion_fix !== '') {\n    j.dias_alimentacion_fix = Number(j.dias_alimentacion_fix);\n  }\n\n  // 5) Fondo de reserva (si luego lo añades al Excel)\n  if (j.fondo_reserva_fix != null && j.fondo_reserva_fix !== '') {\n    j.fondo_reserva_fix = j.fondo_reserva_fix.toString().trim().toUpperCase();\n  } else {\n    j.fondo_reserva_fix = null;\n  }\n\n  // 6) Clave auxiliar para debug/joins\n  j.clave = `${j.empresa}-${j.identificacion}`;\n\n  item.json = j;\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        1776
+      ],
+      "id": "158e7d24-a08f-4d8d-969f-1a48c76891b2",
+      "name": "Ajustes FR"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Function — Union Base FR (empleados + idx + quiro + ajustes FR) ===\n// Entrada: items variados desde Merge\n// Salida: 1 solo item con { ...meta, empleados: [...] }\n\nconst items = $input.all().map(i => i.json);\n\n// Helper para convertir a número de forma segura\nconst toNum = (v) => {\n  if (v === null || v === undefined || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  const n = Number(String(v).replace(/[^\\d.-]/g, ''));\n  return Number.isFinite(n) ? n : 0;\n};\n\n// Helper: \"tiene valor\" (no null/undefined/'')\nconst hasVal = (v) => v !== null && v !== undefined && v !== '';\n\n// Helper: normalizar identificación (solo dígitos)\nconst normId = (v) => String(v ?? '').replace(/\\D/g, '');\n\n// Helper: asignar si hay valor (no pisa con null/undefined/'')\nconst setIfVal = (obj, key, val) => {\n  if (hasVal(val)) obj[key] = val;\n};\n\n// Helper: asignar si el campo destino está vacío\nconst setIfEmpty = (obj, key, val) => {\n  if (!hasVal(obj[key]) && hasVal(val)) obj[key] = val;\n};\n\n// Helper especial: aplicar un *_fix SOLO si es numérico y > 0\nconst setFixIfPositive = (obj, key, val) => {\n  const n = toNum(val);\n  if (n > 0) obj[key] = n;\n};\n\n// Detectar si un item “parece” ajuste FR\nconst isAjusteFR = (o) => {\n  if (!o) return false;\n  const keys = Object.keys(o);\n  const hasFix = keys.some(k => k.endsWith('_fix'));\n  const hasEmpresa = hasVal(o.empresa) || hasVal(o.codigo_empresa) || hasVal(o.empresa_code);\n  return hasFix || (hasEmpresa && (hasVal(o.identificacion) || hasVal(o.cedula)));\n};\n\n// --- NORMALIZADOR DE MAPA QUIRO ---\n// Acepta quiro como:\n// 1) mapa: { \"172...\": {monto_quiro: ...} }\n// 2) mapa por clave: { \"QR-172...\": {...} }\n// 3) arreglo: [ {identificacion/cedula/clave, monto_quiro/...}, ... ]\n// Devuelve mapa por CÉDULA (solo dígitos): { \"172...\": {monto_quiro, nuts, origen} }\nconst normalizeQuiroMap = (quiroRaw) => {\n  const out = {};\n\n  const upsert = (keyLike, valObj) => {\n    const id = normId(keyLike);\n    if (!id) return;\n\n    const v = valObj ?? {};\n    // monto_quiro puede venir con distintos nombres o incluso como número directo\n    const monto =\n      (typeof v === 'number' ? v : undefined) ??\n      v.monto_quiro ??\n      v.monto ??\n      v.valor ??\n      v.descuento ??\n      v.total ??\n      v.aporte ??\n      0;\n\n    out[id] = {\n      ...v,\n      monto_quiro: toNum(monto),\n      nuts: v.nuts ?? v.NUTS ?? v.nut ?? v.NUT ?? v.quiro_nuts ?? '',\n      origen: v.origen ?? v.ORIGEN ?? v.source ?? v.fuente ?? '',\n    };\n  };\n\n  if (!quiroRaw) return out;\n\n  if (Array.isArray(quiroRaw)) {\n    for (const row of quiroRaw) {\n      if (!row) continue;\n      upsert(row.identificacion ?? row.cedula ?? row.clave, row);\n    }\n    return out;\n  }\n\n  if (typeof quiroRaw === 'object') {\n    for (const [k, v] of Object.entries(quiroRaw)) {\n      // si el valor es un objeto con identificacion, usa eso; si no, usa la key\n      const keyLike = (v && typeof v === 'object' && (v.identificacion || v.cedula || v.clave))\n        ? (v.identificacion ?? v.cedula ?? v.clave)\n        : k;\n      upsert(keyLike, v);\n    }\n    return out;\n  }\n\n  return out;\n};\n\n// Contenedores\nlet meta = {};                 // datos generales de la nómina\nlet quiroPorId = {};           // mapa por cédula (normalizado)\nlet idx = {};                  // mapa por identificación desde PDF FR (idx)\nconst basePorId = {};          // empleados venidos de Base FR / archivo\nconst ajustesPorId = {};       // filas del Excel de ajustes FR\n\n// Clasificamos todos los items de entrada\nfor (const obj of items) {\n  if (!obj || typeof obj !== 'object') continue;\n\n  // 1) Meta general\n  if (hasVal(obj.fecha_nomina) && hasVal(obj.periodo_key)) {\n    meta = obj;\n    continue;\n  }\n\n  // 2) Quirografarios (normalizamos a mapa por cédula)\n  if (obj.quiro) {\n    quiroPorId = normalizeQuiroMap(obj.quiro);\n    continue;\n  }\n\n  // 3) Mapa idx (PDF FR)\n  if (obj.idx && typeof obj.idx === 'object') {\n    idx = obj.idx || {};\n    continue;\n  }\n\n  // 4) Empleados de la base / archivo\n  if (\n    Object.prototype.hasOwnProperty.call(obj, 'en_db') ||\n    Object.prototype.hasOwnProperty.call(obj, 'en_archivo')\n  ) {\n    const id = normId(obj.identificacion ?? obj.cedula);\n    if (!id) continue;\n    basePorId[id] = obj;\n    continue;\n  }\n\n  // 5) Ajustes manuales FR (Excel)\n  if (isAjusteFR(obj) && (hasVal(obj.identificacion) || hasVal(obj.cedula))) {\n    const id = normId(obj.identificacion ?? obj.cedula);\n    if (!id) continue;\n    ajustesPorId[id] = obj;\n    continue;\n  }\n}\n\n// Armamos el set de todas las cédulas que aparecen en cualquier fuente\nconst allIds = new Set([\n  ...Object.keys(basePorId),\n  ...Object.keys(quiroPorId || {}),\n  ...Object.keys(idx || {}),\n  ...Object.keys(ajustesPorId || {}),\n]);\n\nconst empleados = [];\n\n// helper: buscar quiro por id con variantes de clave (por si en algún punto quedó con prefijos)\nconst getQuiro = (id, empresa) => {\n  const emp = empresa ?? meta.empresa ?? null;\n  return (\n    quiroPorId[id] ||\n    (emp ? quiroPorId[`${emp}-${id}`] : undefined) ||\n    (emp ? quiroPorId[`${emp}_${id}`] : undefined) ||\n    quiroPorId[`QR-${id}`] ||\n    quiroPorId[`QR_${id}`] ||\n    {}\n  );\n};\n\nfor (const rawId of allIds) {\n  const id   = normId(rawId);\n  const base = basePorId[id] || {};\n  const a    = ajustesPorId[id] || {};\n  const i    = idx[id] || {};\n\n  // empezamos con base (para no perder campos previos)\n  const emp = {\n    ...(base || {}),\n    identificacion: id,\n  };\n\n  // Empresa/nombre lo antes posible (para ayudar a buscar quiro con prefijos)\n  setIfEmpty(emp, 'empresa', base.empresa ?? base.db_codigo_empresa ?? meta.empresa ?? null);\n  setIfEmpty(emp, 'nombre',  base.nombre  ?? base.db_nombre ?? null);\n\n  // --------------------------------\n  // 0) NORMALIZACIÓN de campos de ingresos/egresos (para no “perder” sueldo_variable, etc.)\n  // --------------------------------\n  setIfEmpty(emp, 'sueldo_variable',  base.sueldo_variable  ?? base.db_sueldo_variable  ?? 0);\n  setIfEmpty(emp, 'transporte',       base.transporte       ?? base.db_transporte       ?? 0);\n  setIfEmpty(emp, 'movilizacion',     base.movilizacion     ?? base.db_movilizacion     ?? 0);\n  setIfEmpty(emp, 'compensacion',     base.compensacion     ?? base.db_compensacion     ?? 0);\n  setIfEmpty(emp, 'utilidades',       base.utilidades       ?? base.db_utilidades       ?? 0);\n  setIfEmpty(emp, 'otros_ingresos',   base.otros_ingresos   ?? base.db_otros_ingresos   ?? 0);\n\n  setIfEmpty(emp, 'anticipos',         base.anticipos         ?? base.db_anticipos         ?? 0);\n  setIfEmpty(emp, 'prestamos_empresa', base.prestamos_empresa ?? base.db_prestamos_empresa ?? 0);\n  setIfEmpty(emp, 'crediflash',        base.crediflash        ?? base.db_crediflash        ?? 0);\n  setIfEmpty(emp, 'iess_quirograficos',base.iess_quirograficos?? base.db_iess_quirograficos?? 0);\n\n  emp.sueldo_variable     = toNum(emp.sueldo_variable);\n  emp.transporte          = toNum(emp.transporte);\n  emp.movilizacion        = toNum(emp.movilizacion);\n  emp.compensacion        = toNum(emp.compensacion);\n  emp.utilidades          = toNum(emp.utilidades);\n  emp.otros_ingresos      = toNum(emp.otros_ingresos);\n  emp.anticipos           = toNum(emp.anticipos);\n  emp.prestamos_empresa   = toNum(emp.prestamos_empresa);\n  emp.crediflash          = toNum(emp.crediflash);\n  emp.iess_quirograficos  = toNum(emp.iess_quirograficos);\n\n  // --------------------------------\n  // 1) Datos desde idx (PDF Fondo R)\n  // --------------------------------\n  emp.fr_derecho      = (i.fr_derecho      ?? emp.fr_derecho      ?? false);\n  emp.fr_acumulacion  = (i.fr_acumulacion  ?? emp.fr_acumulacion  ?? false);\n  emp.fr_tiene_cargos = (i.fr_tiene_cargos ?? emp.fr_tiene_cargos ?? false);\n\n  emp.fr_fecha_solicitud = (i.fr_fecha_solicitud ?? emp.fr_fecha_solicitud ?? null);\n  emp.sucursal           = (i.sucursal           ?? emp.sucursal           ?? null);\n  emp.aportes_periodo    = (i.aportes_periodo    ?? emp.aportes_periodo    ?? null);\n\n  emp.fr_tiene_solicitud =\n    (i.fr_tiene_solicitud ??\n      (hasVal(i.fr_fecha_solicitud) ? true : (emp.fr_tiene_solicitud ?? false)));\n\n  // --------------------------------\n  // 2) Descuentos Base FR\n  // --------------------------------\n  if (\n    Object.prototype.hasOwnProperty.call(base, 'descuento_multa') ||\n    Object.prototype.hasOwnProperty.call(base, 'descuento_crediflash')\n  ) {\n    emp.desc_multa             = base.descuento_multa ?? 0;\n    emp.desc_crediflash        = base.descuento_crediflash ?? 0;\n    emp.desc_saludsa           = base.descuento_saludsa ?? 0;\n    emp.desc_seguro_accidentes = base.descuento_seguro_accidentes ?? 0;\n    emp.desc_anticipos         = base.descuento_anticipos ?? 0;\n    emp.desc_prestamos         = base.descuento_prestamos ?? 0;\n  } else if (base.descuentos && typeof base.descuentos === 'object') {\n    const d = base.descuentos;\n    emp.desc_multa             = d['_tipo = multa'] ?? 0;\n    emp.desc_crediflash        = d['_tipo = crediflash'] ?? 0;\n    emp.desc_saludsa           = d['_tipo = saludsa'] ?? 0;\n    emp.desc_seguro_accidentes = d['_tipo = seguro_accidentes'] ?? 0;\n    emp.desc_anticipos         = d['_tipo = anticipos'] ?? 0;\n    emp.desc_prestamos         = d['_tipo = prestamos'] ?? 0;\n  } else {\n    emp.desc_multa             = 0;\n    emp.desc_crediflash        = 0;\n    emp.desc_saludsa           = 0;\n    emp.desc_seguro_accidentes = 0;\n    emp.desc_anticipos         = 0;\n    emp.desc_prestamos         = 0;\n  }\n\n  emp.desc_multa             = toNum(emp.desc_multa);\n  emp.desc_crediflash        = toNum(emp.desc_crediflash);\n  emp.desc_saludsa           = toNum(emp.desc_saludsa);\n  emp.desc_seguro_accidentes = toNum(emp.desc_seguro_accidentes);\n  emp.desc_anticipos         = toNum(emp.desc_anticipos);\n  emp.desc_prestamos         = toNum(emp.desc_prestamos);\n\n  // --------------------------------\n  // 3) Quirografarios ✅ FIX: NO pisar lo que ya viene en base, y solo sobreescribir si el mapa trae monto > 0\n  // --------------------------------\n\n  // 3.1) Conserva lo que ya viene en el registro\n  emp.monto_quiro = toNum(base.monto_quiro ?? emp.monto_quiro ?? 0);\n\n  // nuts/origen pueden venir como \"nuts\"/\"origen\" o como \"quiro_nuts\"/\"quiro_origen\"\n  emp.quiro_nuts   = base.quiro_nuts   ?? base.nuts   ?? emp.quiro_nuts   ?? '';\n  emp.quiro_origen = base.quiro_origen ?? base.origen ?? emp.quiro_origen ?? '';\n\n  // 3.2) Si existe un mapa de quiros (cuando venga como item aparte), úsalo SOLO si trae monto útil\n  const q = getQuiro(id, emp.empresa);\n  const qMonto =\n    (typeof q === 'number' ? q : undefined) ??\n    q.monto_quiro ??\n    q.monto ??\n    q.valor ??\n    q.descuento ??\n    q.total ??\n    null;\n\n  // Solo sobreescribir si qMonto viene y es > 0\n  if (qMonto !== null && toNum(qMonto) > 0) {\n    emp.monto_quiro  = toNum(qMonto);\n    emp.quiro_nuts   = q.nuts ?? q.NUTS ?? q.nut ?? q.NUT ?? q.quiro_nuts ?? emp.quiro_nuts ?? '';\n    emp.quiro_origen = q.origen ?? q.ORIGEN ?? q.source ?? q.fuente ?? emp.quiro_origen ?? '';\n  }\n\n  // --------------------------------\n  // 4) Ajustes manuales (NO PISAR con null) + regla de negocio para días\n  // --------------------------------\n  if (hasVal(a.empresa)) emp.empresa = a.empresa;\n  else emp.empresa = emp.empresa ?? base.db_codigo_empresa ?? meta.empresa ?? null;\n\n  if (hasVal(a.nombre)) emp.nombre = a.nombre;\n  else emp.nombre = emp.nombre ?? base.db_nombre ?? null;\n\n  // OJO: solo aplicamos _fix si es > 0 (y en especial para días)\n  // Si para otros rubros quieres permitir 0 como override intencional, cámbialo caso por caso.\n  setFixIfPositive(emp, 'utilidades_fix',        a.utilidades_fix);\n  setFixIfPositive(emp, 'dias_alimentacion_fix', a.dias_alimentacion_fix);\n  setFixIfPositive(emp, 'dias_trabajados_fix',   a.dias_trabajados_fix);\n  setFixIfPositive(emp, 'fondo_reserva_fix',     a.fondo_reserva_fix);\n\n  // Asegurar que existan las llaves *_fix (null si no aplica)\n  if (!Object.prototype.hasOwnProperty.call(emp, 'utilidades_fix'))         emp.utilidades_fix = null;\n  if (!Object.prototype.hasOwnProperty.call(emp, 'dias_alimentacion_fix'))  emp.dias_alimentacion_fix = null;\n  if (!Object.prototype.hasOwnProperty.call(emp, 'dias_trabajados_fix'))    emp.dias_trabajados_fix = null;\n  if (!Object.prototype.hasOwnProperty.call(emp, 'fondo_reserva_fix'))      emp.fondo_reserva_fix = null;\n\n  if (hasVal(a.clave)) emp.clave = a.clave;\n  else if (emp.empresa && id) emp.clave = `${emp.empresa}-${id}`;\n  else emp.clave = null;\n\n  // --------------------------------\n  // 5) Sueldo base y valor_alimentacion_4_5\n  // --------------------------------\n  const salBase = toNum(base.salario_base) || toNum(base.db_salario_base) || toNum(emp.salario_base);\n  emp.salario_base = salBase;\n\n  emp.valor_alimentacion_4_5 =\n    (base.db_valor_alimentacion_4_5 ?? emp.valor_alimentacion_4_5 ?? false);\n\n  // --------------------------------\n  // 6) DÍAS TRABAJADOS (regla negocio): PRIMERO AJUSTE (>0), SI NO 30 SIEMPRE\n  // --------------------------------\n  const dtFix = toNum(emp.dias_trabajados_fix);\n  emp.dias_trabajados = (dtFix > 0) ? dtFix : 30;\n\n  empleados.push(emp);\n}\n\n// Si meta no tenía empresa, intentamos tomarla del primer empleado\nif (!meta.empresa && empleados.length > 0) {\n  meta.empresa = empleados[0].empresa ?? null;\n}\n\n// Salida lista para el siguiente nodo (Armar lote)\nreturn [\n  {\n    json: {\n      ...meta,\n      empleados,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        1040
+      ],
+      "id": "4b271879-df23-4794-ae12-cc5969280686",
+      "name": "Union Base FR"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "clave",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2976,
+        1040
+      ],
+      "id": "fa43702c-d9b5-4817-a20f-622125ceaedb",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1936,
+        288
+      ],
+      "id": "b3ae970c-e629-4b2a-b435-89f279eafabe",
+      "name": "Union novedades - empleados - descuentos bkp"
+    },
+    {
+      "parameters": {
+        "jsCode": "function toNum(v) {\n  if (v === null || v === undefined || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n\n  let s = String(v).trim().replace(/[^\\d.,-]/g, '');\n  if (!s) return 0;\n\n  const comma = s.lastIndexOf(',');\n  const dot = s.lastIndexOf('.');\n\n  if (comma > dot) {\n    s = s.slice(0, comma).replace(/[^\\d-]/g, '') + '.' + s.slice(comma + 1).replace(/\\D/g, '');\n  } else if (dot > comma) {\n    s = s.slice(0, dot).replace(/[^\\d-]/g, '') + '.' + s.slice(dot + 1).replace(/\\D/g, '');\n  }\n\n  const n = Number(s);\n  return Number.isFinite(n) ? n : 0;\n}\n\n// 1) Empleados: usar lo que entra al nodo (salida del Merge)\nconst empleadosItems = items;\n\n// 2) Índice de descuentos\nlet descuentosIdx = {};\nconst descuentosItems = $items('Index descuentos');\n\nif (descuentosItems?.length) {\n  const dJson = descuentosItems[0].json || {};\n  if (dJson.descuentos && typeof dJson.descuentos === 'object') {\n    descuentosIdx = dJson.descuentos;\n  }\n}\n\nconst out = [];\n\nfor (const empItem of empleadosItems) {\n  const emp = { ...(empItem.json || {}) };\n\n  // Normalización robusta\n  const id = String(emp.identificacion ?? '').replace(/\\D/g, '').padStart(10, '0');\n\n  const desc = (id && descuentosIdx[id]) ? descuentosIdx[id] : {};\n  const merged = { ...emp };\n\n  merged.descuentos = desc;\n\n  merged.descuento_multa             = toNum(desc['_tipo = multa']);\n  merged.descuento_crediflash        = toNum(desc['_tipo = crediflash']);\n  merged.descuento_saludsa           = toNum(desc['_tipo = saludsa']);\n  merged.descuento_seguro_accidentes = toNum(desc['_tipo = seguro_accidentes']);\n  merged.descuento_anticipos         = toNum(desc['_tipo = anticipos']);\n  merged.descuento_prestamos         = toNum(desc['_tipo = prestamos']);\n\n  if (merged.en_db && merged.db_salario_base != null && merged.db_salario_base !== '') {\n    merged.salario_base = toNum(merged.db_salario_base);\n  } else if (merged.salario_base != null && merged.salario_base !== '') {\n    merged.salario_base = toNum(merged.salario_base);\n  } else {\n    merged.salario_base = 0;\n  }\n\n  out.push({ json: merged });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        288
+      ],
+      "id": "637a23d0-c89b-4599-9203-ce37d631736a",
+      "name": "Union novedades - empleados - descuentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalizeId(v) {\n  if (v === null || v === undefined) return null;\n  const digits = String(v).trim().replace(/\\D/g, '');\n  if (!digits) return null;\n  if (digits.length === 9) return digits.padStart(10, '0');\n  return digits;\n}\n\nconst items = $input.all();\n\nreturn items.map((item) => {\n  const j = item.json;\n\n  const src =\n    j.identificacion ??\n    j.cedula ??\n    j['Cédula'] ??\n    j['CEDULA'];\n\n  const id = normalizeId(src);\n\n  return {\n    json: {\n      ...j,\n      identificacion: id,\n      _id_source: src,\n      _id_len: id ? id.length : 0,\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        288
+      ],
+      "id": "4e86938a-1497-4c9f-a284-2eab2f6780fc",
+      "name": "Normalizar cedulas empleados"
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalizeId(v) {\n  if (v === null || v === undefined) return null;\n  const digits = String(v).trim().replace(/\\D/g, '');\n  if (!digits) return null;\n  if (digits.length === 9) return digits.padStart(10, '0');\n  return digits;\n}\n\nconst items = $input.all();\n\nreturn items.map((item) => {\n  const j = item.json;\n\n  const src =\n    j.identificacion ??\n    j.cedula ??\n    j['Cédula'] ??\n    j['CEDULA'];\n\n  const id = normalizeId(src);\n\n  return {\n    json: {\n      ...j,\n      identificacion: id,\n      _id_source: src,\n      _id_len: id ? id.length : 0,\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1280
+      ],
+      "id": "86aa57f8-1991-4f3e-985f-dcbd14cddc32",
+      "name": "Normalizar cedulas FR"
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalizeId(v) {\n  if (v === null || v === undefined) return null;\n  const digits = String(v).trim().replace(/\\D/g, '');\n  if (!digits) return null;\n  if (digits.length === 9) return digits.padStart(10, '0');\n  return digits;\n}\n\nconst items = $input.all();\n\nreturn items.map((item) => {\n  const j = item.json;\n\n  const src =\n    j.identificacion ??\n    j.cedula ??\n    j['Cédula'] ??\n    j['CEDULA'];\n\n  const id = normalizeId(src);\n\n  // Código empresa confiable (evita usar j.empresa porque a veces es razón social)\n  const empresa_code = j.db_codigo_empresa ?? j.codigo_empresa ?? j.empresa_code ?? \"QR\";\n\n  return {\n    json: {\n      ...j,\n      identificacion: id,\n      empresa_code,\n      clave: id ? `${empresa_code}-${id}` : null,\n      _id_source: src,\n      _id_len: id ? id.length : 0,\n\n      // si j.empresa era razón social, consérvala aparte para que no choque con el código\n      empresa_razon_social: (j.empresa && String(j.empresa).length > 3) ? j.empresa : j.empresa_razon_social,\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        736
+      ],
+      "id": "5a87e157-61bc-4501-8aef-c4be8ffccdef",
+      "name": "Normalizar cedulas ajustes"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.hipotecarios }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "file5"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -128,
+        800
+      ],
+      "id": "84c1704f-074d-42c3-a6cf-ccf37843850c",
+      "name": "Descargar quirografarios2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JoxrPQ6U8TcUShCm",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Resolver mes y keywords').first().json;\n\nconst binary = {};\n\nconst tryBinary = (nodeName, prop) => {\n  try {\n    const nodeItems = $(nodeName).all();\n    for (const item of nodeItems) {\n      if (item.binary && item.binary[prop]) {\n        binary[prop] = item.binary[prop];\n        return;\n      }\n    }\n  } catch (e) {\n    // Nodo no ejecutado o sin datos — OK\n  }\n};\n\ntryBinary('Descargar novedades', 'file0');\ntryBinary('Descargar descuentos', 'file1');\ntryBinary('Descargar quirografarios', 'file2');\ntryBinary('Descargar fondos de reserva', 'file3');\ntryBinary('Descargar ajustes', 'file4');\ntryBinary('Descargar quirografarios2', 'file5');\n\n// Validar mínimos\nif (!binary.file0) throw new Error('No se encontró archivo de novedades (file0).');\nif (!binary.file1) throw new Error('No se encontró archivo de descuentos (file1).');\n\nconst archivos = Object.keys(binary);\nconsole.log(`Archivos ensamblados: ${archivos.join(', ')}`);\n\nreturn [{\n  json: {\n    fecha_nomina: config.fecha_nomina,\n    empresa: config.empresa,\n    body: {\n      fecha_nomina: config.fecha_nomina,\n      empresa: config.empresa,\n    },\n    _drive_source: true,\n    _archivos: archivos,\n    _periodo: `${config.y}-${config.month_num}`,\n  },\n  binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        480
+      ],
+      "id": "3613d89d-1dd5-4c83-8d42-249a773db5ce",
+      "name": "Ensamblar archivos"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracion del periodo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracion del periodo": {
+      "main": [
+        [
+          {
+            "node": "Resolver mes y keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver mes y keywords": {
+      "main": [
+        [
+          {
+            "node": "Listar Novedades",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Listar Descuentos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Listar PDFs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Listar Ajustes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Novedades": {
+      "main": [
+        [
+          {
+            "node": "Filtrar novedades del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Descuentos": {
+      "main": [
+        [
+          {
+            "node": "Filtrar descuentos del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar PDFs": {
+      "main": [
+        [
+          {
+            "node": "Filtrar PDFs del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Ajustes": {
+      "main": [
+        [
+          {
+            "node": "Filtrar ajustes del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar novedades del mes": {
+      "main": [
+        [
+          {
+            "node": "Descargar novedades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar descuentos del mes": {
+      "main": [
+        [
+          {
+            "node": "Descargar descuentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar PDFs del mes": {
+      "main": [
+        [
+          {
+            "node": "Clasificar PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar ajustes del mes": {
+      "main": [
+        [
+          {
+            "node": "Descargar ajustes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar PDFs": {
+      "main": [
+        [
+          {
+            "node": "Descargar quirografarios",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Descargar fondos de reserva",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Descargar quirografarios2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar novedades": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar descuentos": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar quirografarios": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar fondos de reserva": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar ajustes": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar lote": {
+      "main": [
+        [
+          {
+            "node": "Cálculo de nónima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Index descuentos": {
+      "main": [
+        [
+          {
+            "node": "Union novedades - empleados - descuentos bkp",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Seleccionar empresa": {
+      "main": [
+        [
+          {
+            "node": "Datos de empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos de empleados": {
+      "main": [
+        [
+          {
+            "node": "Lista de empleados BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Novedades mensuales": {
+      "main": [
+        [
+          {
+            "node": "Limpiar informacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar informacion": {
+      "main": [
+        [
+          {
+            "node": "Lista empleados novedades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista de empleados BD": {
+      "main": [
+        [
+          {
+            "node": "Empleados BD - Novedades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista empleados novedades": {
+      "main": [
+        [
+          {
+            "node": "Empleados BD - Novedades",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Empleados BD - Novedades": {
+      "main": [
+        [
+          {
+            "node": "Unir Excel con DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Periodo nomina": {
+      "main": [
+        [
+          {
+            "node": "Descuentos por periodo",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Multas": {
+      "main": [
+        [
+          {
+            "node": "Multas empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crediflash": {
+      "main": [
+        [
+          {
+            "node": "Crediflash empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salud SA": {
+      "main": [
+        [
+          {
+            "node": "Salud SA empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seguro Accidentes": {
+      "main": [
+        [
+          {
+            "node": "Seguro accidentes empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anticipos": {
+      "main": [
+        [
+          {
+            "node": "Anticipos empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prestamos": {
+      "main": [
+        [
+          {
+            "node": "Prestamos empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Quirografario": {
+      "main": [
+        [
+          {
+            "node": "Prestamos quirografarios empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fondos de reserva": {
+      "main": [
+        [
+          {
+            "node": "Limpieza y calculo fondos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Multas empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crediflash empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Salud SA empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Seguro accidentes empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Anticipos empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Prestamos empleado": {
+      "main": [
+        [
+          {
+            "node": "Union descuentos empleado",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Prestamos quirografarios empleado": {
+      "main": [
+        [
+          {
+            "node": "Limpieza prestamos quirografarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpieza y calculo fondos": {
+      "main": [
+        [
+          {
+            "node": "Union fondos - quirografarios",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Union descuentos empleado": {
+      "main": [
+        [
+          {
+            "node": "Descuentos por periodo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descuentos por periodo": {
+      "main": [
+        [
+          {
+            "node": "Seleccionar mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpieza prestamos quirografarios": {
+      "main": [
+        [
+          {
+            "node": "Suma por persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seleccionar mes": {
+      "main": [
+        [
+          {
+            "node": "Index descuentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suma por persona": {
+      "main": [
+        [
+          {
+            "node": "Asignacion de valores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignacion de valores": {
+      "main": [
+        [
+          {
+            "node": "Union fondos - quirografarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Union fondos - quirografarios": {
+      "main": [
+        [
+          {
+            "node": "Normalizar cedulas FR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cálculo de nónima": {
+      "main": [
+        [
+          {
+            "node": "Limpieza de informacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpieza de informacion": {
+      "main": [
+        [
+          {
+            "node": "Exportar a excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Excel con DB": {
+      "main": [
+        [
+          {
+            "node": "Union novedades - empleados - descuentos bkp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix binario ajustes.xlsx": {
+      "main": [
+        [
+          {
+            "node": "Leer Ajustes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Ajustes": {
+      "main": [
+        [
+          {
+            "node": "Ajustes FR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base FR": {
+      "main": [
+        [
+          {
+            "node": "Normalizar cedulas ajustes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ajustes FR": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Union Base FR": {
+      "main": [
+        [
+          {
+            "node": "Armar lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Union Base FR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Union novedades - empleados - descuentos bkp": {
+      "main": [
+        [
+          {
+            "node": "Union novedades - empleados - descuentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Union novedades - empleados - descuentos": {
+      "main": [
+        [
+          {
+            "node": "Normalizar cedulas empleados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar cedulas empleados": {
+      "main": [
+        [
+          {
+            "node": "Base FR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar cedulas FR": {
+      "main": [
+        [
+          {
+            "node": "Base FR",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Normalizar cedulas ajustes": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar quirografarios2": {
+      "main": [
+        [
+          {
+            "node": "Ensamblar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensamblar archivos": {
+      "main": [
+        [
+          {
+            "node": "Fix binario ajustes.xlsx",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fondos de reserva",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Quirografario",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Multas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Periodo nomina",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prestamos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anticipos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Seguro Accidentes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Salud SA",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Crediflash",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Seleccionar empresa",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Novedades mensuales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "cb11180b-0b23-45ec-9864-f483dddc6b39",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "INSTANCE_ID"
+  },
+  "id": "I6elbOXAaJPi1TAeUd413",
+  "tags": []
+}
